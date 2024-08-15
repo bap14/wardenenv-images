@@ -1,17 +1,18 @@
 name: Base PHP Images
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 6 * * *" # 6 AM Daily
-  push:
-    branches:
-      - main
-      - develop
-    paths:
-      - php/**
-      - .github/workflows/php.yml
-      - php-fpm/**
-      - scripts/build.sh
+# Temporarily disable execution
+# on:
+#   workflow_dispatch:
+#   schedule:
+#     - cron: "0 6 * * *" # 6 AM Daily
+#   push:
+#     branches:
+#       - main
+#       - develop
+#     paths:
+#       - php/**
+#       - .github/workflows/php.yml
+#       - php-fpm/**
+#       - scripts/build.sh
 jobs:
   legacy-php:
     name: Build Legacy PHP Images
