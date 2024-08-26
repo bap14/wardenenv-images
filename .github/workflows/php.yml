@@ -85,7 +85,7 @@ jobs:
           TAGS: ${{ steps.meta.outputs.tags }}
         run: bash scripts/build-php-base.sh
   active-php:
-    name: Build Legacy PHP Images
+    name: Build Active PHP Images
     runs-on: ubuntu-latest
     needs:
       - php-setup

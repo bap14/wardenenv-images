@@ -65,11 +65,8 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
     IMAGE_TAGS+=("${TAG}${TAG_SUFFIX}")
   done
 
-  echo "${IMAGE_TAGS[@]}"
-  echo "::notice title='${BUILD_VERSION} ${VARIANT} Tags'::${IMAGE_TAGS[@]}"
-
   # Iterate and push image tags to remote registry
   if [[ ${PUSH_FLAG} != 0 ]]; then
-    echo docker buildx build --push --platform=linux/arm64,linux/amd64 "${IMAGE_TAGS[@]}" "${BUILD_VARIANT}" $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+    docker buildx build --push --platform=linux/arm64,linux/amd64 "${IMAGE_TAGS[@]}" "${BUILD_VARIANT}" $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
   fi
 done
