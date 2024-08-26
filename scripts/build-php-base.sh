@@ -60,7 +60,7 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
 
   IMAGE_TAGS=()
 
-  for TAG in "${TAGS}"; do
+  for TAG in ${TAGS}; do
     IMAGE_TAGS+=("-t")
     IMAGE_TAGS+=("${TAG}${TAG_SUFFIX}")
   done
