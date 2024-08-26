@@ -43,7 +43,7 @@ jobs:
             LEGACY_VERSIONS=$(echo "$LEGACY_VERSIONS" "$VERSION" | jq -c --slurp '[ .[]|values[] ] | sort')
           done
           echo "::notice title=Legacy PHP Versions identified::${LEGACY_VERSIONS}"
-          echo "php_versions=\"$LEGACY_VERSIONS\""
+          echo "php_versions=\"$LEGACY_VERSIONS\"" >> $GITHUB_OUTPUT
   legacy-php:
     name: Build Legacy PHP Images
     runs-on: ubuntu-latest
