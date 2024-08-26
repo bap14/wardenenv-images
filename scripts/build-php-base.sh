@@ -54,23 +54,21 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
   printf "\e[01;31m==> building %s:%s (%s)\033[0m\n" \
     "${IMAGE_NAME}" "${BUILD_VERSION}" "${BUILD_VARIANT}"
 
-  ####docker buildx build --platform=linux/arm64,linux/amd64 -t "warden-php" "${BUILD_VARIANT}" $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
-
   # Strip the term 'cli' from tag suffix as this is the default variant
   TAG_SUFFIX="$(echo "${BUILD_VARIANT}" | sed -E 's/^(cli$|cli-)//')"
   [[ ${TAG_SUFFIX} ]] && TAG_SUFFIX="-${TAG_SUFFIX}"
 
   IMAGE_TAGS=()
-  echo "${TAGS}"
 
-  # Generate array of tags for the image being built
-  #IMAGE_TAGS=(
-  #  "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}"
-  #  "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}"
-  #)
+  for TAG in "${TAGS}"; do
+    IMAGE_TAGS+=("-t")
+    IMAGE_TAGS+=("${TAG}${TAG_SUFFIX}")
+  done
 
-  ## Iterate and push image tags to remote registry
-  #if [[ ${PUSH_FLAG} != 0 ]]; then
-  #  docker buildx build --push --platform=linux/arm64,linux/amd64 -t "${IMAGE_TAGS[@]}" "${BUILD_VARIANT}" $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
-  #fi
+  echo "${IMAGE_TAGS[@]}"
+
+  # Iterate and push image tags to remote registry
+  if [[ ${PUSH_FLAG} != 0 ]]; then
+    echo docker buildx build --push --platform=linux/arm64,linux/amd64 "${IMAGE_TAGS[@]}" "${BUILD_VARIANT}" $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+  fi
 done
