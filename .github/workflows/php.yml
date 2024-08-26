@@ -41,7 +41,7 @@ jobs:
             VERSION=$(curl -o- "https://www.php.net/releases/?json&version=${VERS}" 2>/dev/null | jq '[ .version ]')
             LEGACY_VERSIONS=$(echo "$LEGACY_VERSIONS" "$VERSION" | jq -c --slurp '[ .[]|values[] ] | sort')
           done
-          echo "php_versions=\"$LEGACY_VERSIONS\"" >> $GITHUB_OUTPUT
+          echo "php_versions=$LEGACY_VERSIONS" >> $GITHUB_OUTPUT
           echo "::notice title=Legacy PHP Versions identified::${LEGACY_VERSIONS}"
   legacy-php:
     name: Build Legacy PHP Images
