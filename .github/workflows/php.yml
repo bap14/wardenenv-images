@@ -18,13 +18,11 @@ jobs:
     name: PHP Setup
     runs-on: ubuntu-latest
     outputs:
-      php_major_versions: ${{ steps.get_latest_versions.outputs.major_versions }}
-      php_minor_versions: ${{ steps.get_latest_versions.outputs.minor_versions }}
-      php_versions: ${{ steps.get_latest_versions.outputs.php_versions }}
-      legacy_versions: ${{ steps.get_legacy_versions.outputs.php_versions }}
+      active_versions: ${{ steps.active.outputs.php_versions }}
+      legacy_versions: ${{ steps.legacy.outputs.php_versions }}
     steps:
       - name: Gather Active PHP Versions
-        id: get_latest_versions
+        id: active
         run: |
           PHP_ACTIVE=$(curl -o- 'https://www.php.net/releases/active' 2>/dev/null)
           MAJOR_VERSIONS=$(echo "$PHP_ACTIVE" | jq -c '[.[]|keys[]] | sort')
@@ -35,7 +33,7 @@ jobs:
           echo "php_versions=$(echo "${MAJOR_VERSIONS}" "${MINOR_VERSIONS}" | jq -c --slurp '[ .[]|values[] ] | sort')" >> $GITHUB_OUTPUT
           echo "::notice title=Active PHP Versions identified::${MINOR_VERSIONS}"
       - name: Gather Legacy PHP Versions
-        id: get_legacy_versions
+        id: legacy
         env:
           VERSION_LIST: "7.4 8.0"
         run: |
