@@ -18,7 +18,7 @@ jobs:
     name: PHP Setup
     runs-on: ubuntu-latest
     outputs:
-      active_versions: ${{ steps.active.outputs.php_versions }}
+      active_versions: ${{ steps.active.outputs.minor_versions }}
       legacy_versions: ${{ steps.legacy.outputs.php_versions }}
     steps:
       - name: Gather Active PHP Versions
@@ -27,10 +27,9 @@ jobs:
           PHP_ACTIVE=$(curl -o- 'https://www.php.net/releases/active' 2>/dev/null)
           MAJOR_VERSIONS=$(echo "$PHP_ACTIVE" | jq -c '[.[]|keys[]] | sort')
           MINOR_VERSIONS=$(echo "$PHP_ACTIVE" | jq -c '[.[]|.[]|.version] | sort')
-
           echo "major_versions=${MAJOR_VERSIONS}" >> $GITHUB_OUTPUT
           echo "minor_versions=${MINOR_VERSIONS}" >> $GITHUB_OUTPUT
-          echo "php_versions=$(echo "${MAJOR_VERSIONS}" "${MINOR_VERSIONS}" | jq -c --slurp '[ .[]|values[] ] | sort')" >> $GITHUB_OUTPUT
+          echo "all_versions=$(echo "${MAJOR_VERSIONS}" "${MINOR_VERSIONS}" | jq -c --slurp '[ .[]|values[] ] | sort')" >> $GITHUB_OUTPUT
           echo "::notice title=Active PHP Versions identified::${MINOR_VERSIONS}"
       - name: Gather Legacy PHP Versions
         id: legacy
@@ -42,8 +41,8 @@ jobs:
             VERSION=$(curl -o- "https://www.php.net/releases/?json&version=${VERS}" 2>/dev/null | jq '[ .version ]')
             LEGACY_VERSIONS=$(echo "$LEGACY_VERSIONS" "$VERSION" | jq -c --slurp '[ .[]|values[] ] | sort')
           done
-          echo "::notice title=Legacy PHP Versions identified::${LEGACY_VERSIONS}"
           echo "php_versions=\"$LEGACY_VERSIONS\"" >> $GITHUB_OUTPUT
+          echo "::notice title=Legacy PHP Versions identified::${LEGACY_VERSIONS}"
   legacy-php:
     name: Build Legacy PHP Images
     runs-on: ubuntu-latest
@@ -53,47 +52,81 @@ jobs:
       matrix:
         php_version: ${{ fromJSON(needs.php-setup.outputs.legacy_versions) }}
     steps:
+      - name: Extract Major Version
+        id: custom-tags
+        run: |
+          echo "php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: |
+            ghcr.io/wardenenv/centos-php
+          flavor: |
+            latest=false
+            suffix=${{ github.ref == 'refs/heads/main' && '' || 'indev' }}
+          tags: |
+            type=raw,value=${{ matrix.php_version }}
+            type=raw,value=${{ steps.custom-tags.outputs.php_version }}
   #     - uses: docker/login-action@v2
   #       with:
   #         registry: ghcr.io
   #         username: ${{ github.repository_owner }}
   #         password: ${{ secrets.GITHUB_TOKEN }}
-  #     - name: Build & Push Images
-  #       env:
-  #         PRE_AUTH: 1
-  #         IMAGE_NAME: ghcr.io/wardenenv/centos-php
-  #         VERSION_LIST: ${{ fromJSON(needs.php-setup.outputs.legacy_versions) }}
-  #         VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-  #         PUSH_FLAG: 1
-  #         INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
-  #       run: bash php/build-php-base.sh
-  # active-php:
-  #   name: Build Legacy PHP Images
-  #   runs-on: ubuntu-latest
-  #   needs:
-  #     - php-setup
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: docker/setup-qemu-action@v2
-  #     - uses: docker/setup-buildx-action@v2
+      - name: Build & Push Images
+        env:
+          PRE_AUTH: 1
+          IMAGE_NAME: ghcr.io/wardenenv/centos-php
+          PHP_VERSION: ${{ matrix.php_version }}
+          VARIANT_LIST: cli cli-loaders fpm fpm-loaders
+          PUSH_FLAG: 1
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: bash php/build-php-base.sh
+  active-php:
+    name: Build Legacy PHP Images
+    runs-on: ubuntu-latest
+    needs:
+      - php-setup
+    strategy:
+      matrix:
+        php_version: ${{ fromJSON(needs.php-setup.outputs.active_versions) }}
+    steps:
+      - name: Extract Major Version
+        id: custom-tags
+        run: |
+          echo "php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v3
+      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: |
+            ghcr.io/wardenenv/centos-php
+          flavor: |
+            latest=false
+            suffix=${{ github.ref == 'refs/heads/main' && '' || 'indev' }}
+          tags: |
+            type=raw,value=${{ matrix.php_version }}
+            type=raw,value=${{ steps.custom-tags.outputs.php_version }}
+          
   #     - uses: docker/login-action@v2
   #       with:
   #         registry: ghcr.io
   #         username: ${{ github.repository_owner }}
   #         password: ${{ secrets.GITHUB_TOKEN }}
-  #     - name: Build & Push Images
-  #       env:
-  #         PRE_AUTH: 1
-  #         IMAGE_NAME: ghcr.io/wardenenv/centos-php
-  #         VERSION_LIST: ${{ fromJSON(needs.php-setup.outputs.php_minor_versions) }}
-  #         VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-  #         PUSH_FLAG: 1
-  #         INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
-  #       run: bash php/build-php-base.sh
-  # 
+      - name: Build & Push Images
+        env:
+          PRE_AUTH: 1
+          IMAGE_NAME: ghcr.io/wardenenv/centos-php
+          PHP_VERSION: ${{ matrix.php_version }}
+          VARIANT_LIST: cli cli-loaders fpm fpm-loaders
+          PUSH_FLAG: 1
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: bash php/build-php-base.sh
+  
   # php-fpm:
   #   name: Build Warden PHP-FPM Images ${{ matrix.php_version }}
   #   runs-on: ubuntu-latest
