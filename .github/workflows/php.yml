@@ -32,7 +32,7 @@ jobs:
 
           echo "major_versions=${MAJOR_VERSIONS}" >> $GITHUB_OUTPUT
           echo "minor_versions=${MINOR_VERSIONS}" >> $GITHUB_OUTPUT
-          echo "php_versions=$(echo "${MAJOR_VERSIONS}" "${MINOR_VERSIONS}" | jq -c '[ .[]|values[] ] | sort')" >> $GITHUB_OUTPUT
+          echo "php_versions=$(echo "${MAJOR_VERSIONS}" "${MINOR_VERSIONS}" | jq -c --slurp '[ .[]|values[] ] | sort')" >> $GITHUB_OUTPUT
           echo "::notice title=Active PHP Versions identified::${MINOR_VERSIONS}"
       - name: Gather Legacy PHP Versions
         id: get_legacy_versions
