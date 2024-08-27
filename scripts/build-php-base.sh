@@ -38,7 +38,6 @@ fi
 BUILD_VERSION="${PHP_VERSION:-"7.4"}"
 VARIANT_LIST="${VARIANT_LIST:-"cli cli-loaders fpm fpm-loaders"}"
 
-docker buildx ls
 docker buildx create --use
 IMAGE_NAME="${IMAGE_NAME:-"ghcr.io/wardenenv/centos-php"}"
 if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
@@ -67,6 +66,6 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
 
   # Iterate and push image tags to remote registry
   if [[ ${PUSH_FLAG} != 0 ]]; then
-    docker buildx build --push --platform=linux/arm64,linux/amd64 "${IMAGE_TAGS[@]}" "${BUILD_VARIANT}" $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+    docker buildx build --push --platform=linux/arm64,linux/amd64 "${IMAGE_TAGS[@]}" "php/${BUILD_VARIANT}" $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
   fi
 done
