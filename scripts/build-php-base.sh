@@ -35,7 +35,7 @@ fi
 
 ## iterate over and build each variant; build matrix will override to build each
 ## supported version
-BUILD_VERSION="${PHP_VERSION:-"8.3"}"
+#BUILD_VERSION="${PHP_VERSION:-"8.3"}"
 VARIANT_LIST="${VARIANT_LIST:-"cli cli-loaders fpm fpm-loaders"}"
 
 IMAGE_NAME="${IMAGE_NAME:-"ghcr.io/wardenenv/centos-php"}"
@@ -46,12 +46,12 @@ fi
 LABELS=()
 for BUILD_VARIANT in ${VARIANT_LIST}; do
   # Configure build args specific to this image build
-  export PHP_VERSION="${MAJOR_VERSION}"
+  #export PHP_VERSION="${MAJOR_VERSION}"
   BUILD_ARGS=(IMAGE_NAME PHP_VERSION)
 
   # Build the image passing list of tags and build args
   printf "\e[01;31m==> building %s:%s (%s)\033[0m\n" \
-    "${IMAGE_NAME}" "${BUILD_VERSION}" "${BUILD_VARIANT}"
+    "${IMAGE_NAME}" "${PHP_VERSION}" "${BUILD_VARIANT}"
 
   # Strip the term 'cli' from tag suffix as this is the default variant
   TAG_SUFFIX="$(echo "${BUILD_VARIANT}" | sed -E 's/^(cli$|cli-)//')"
