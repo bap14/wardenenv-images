@@ -33,17 +33,17 @@ if [[ $PUSH_FLAG != 0 && ${PRE_AUTH:-0} != 1 ]]; then
   fi
 fi
 
-## iterate over and build each version/variant combination; by default building
-## latest version; build matrix will override to build each supported version
-BUILD_VERSION="${PHP_VERSION:-"7.4"}"
+## iterate over and build each variant; build matrix will override to build each
+## supported version
+BUILD_VERSION="${PHP_VERSION:-"8.3"}"
 VARIANT_LIST="${VARIANT_LIST:-"cli cli-loaders fpm fpm-loaders"}"
 
-docker buildx create --use
 IMAGE_NAME="${IMAGE_NAME:-"ghcr.io/wardenenv/centos-php"}"
 if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
   IMAGE_NAME="${IMAGE_NAME}-indev"
 fi
 
+LABELS=()
 for BUILD_VARIANT in ${VARIANT_LIST}; do
   # Configure build args specific to this image build
   export PHP_VERSION="${MAJOR_VERSION}"
@@ -65,7 +65,30 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
   done
 
   # Iterate and push image tags to remote registry
+  PUSH=""
   if [[ ${PUSH_FLAG} != 0 ]]; then
-    docker buildx build --push --platform=linux/arm64,linux/amd64 "${IMAGE_TAGS[@]}" "php/${BUILD_VARIANT}" $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+    PUSH="--push"
   fi
+
+  docker buildx build --load \
+      --platform=linux/arm64,linux/amd64 \
+      -t warden-builder
+      "php/${BUILD_VARIANT}" \
+      $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+  
+  if [[ "${BUILD_VARIANT}" == "cli" ]]; then
+    VERSION=$(docker run --rm warden-builder --entrypoint php -r 'echo phpversion();')
+    MAJOR_VERSION=$(echo ${VERSION} | awk -F '.' '{print $1$2}')
+
+    LABELS+=("warden:php_major_version=${MAJOR_VERSION}")
+    LABELS+=("warden:php_version=${VERSION}")
+  fi
+
+  docker buildx build ${PUSH} \
+    "${IMAGE_TAGS[@]}" \
+    -t "${VERSION}${TAG_SUFFIX}" \
+    $(printf -- "--label %s" "${LABELS[@]}") \
+    --label "warden:variant=${BUILD_VARIANT}" \
+    "php/${BUILD_VARIANT}" \
+    $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 done
