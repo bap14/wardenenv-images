@@ -70,12 +70,20 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
     PUSH="--push"
   fi
 
-  docker buildx build --load \
+  # Build the multi-platform image
+  docker buildx build \
       --platform=linux/arm64,linux/amd64 \
       -t warden-builder \
       "php/${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
   
+  # Load the image to be able to run
+  docker buildx build --load \
+      -t warden-builder \
+      "php/${BUILD_VARIANT}" \
+      $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+  
+  # Run the image only once, and extract the full version
   if [[ "${BUILD_VARIANT}" == "cli" ]]; then
     VERSION=$(docker run --rm warden-builder --entrypoint php -r 'echo phpversion();')
     MAJOR_VERSION=$(echo ${VERSION} | awk -F '.' '{print $1$2}')
@@ -84,6 +92,7 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
     LABELS+=("warden:php_version=${VERSION}")
   fi
 
+  # Push the images to registries
   docker buildx build ${PUSH} \
     "${IMAGE_TAGS[@]}" \
     -t "${VERSION}${TAG_SUFFIX}" \
