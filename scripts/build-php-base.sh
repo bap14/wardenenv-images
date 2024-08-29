@@ -72,7 +72,7 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
 
   docker buildx build --load \
       --platform=linux/arm64,linux/amd64 \
-      -t warden-builder
+      -t warden-builder \
       "php/${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
   
