@@ -86,9 +86,12 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
   # Run the image only once, and extract the full version
   if [[ "${BUILD_VARIANT}" == "cli" ]]; then
     VERSION=$(docker run --rm warden-builder --entrypoint php -r 'echo phpversion();')
-    MAJOR_VERSION=$(echo ${VERSION} | awk -F '.' '{print $1$2}')
 
-    LABELS+=("warden:php_major_version=${MAJOR_VERSION}")
+    if [[ "${EXPECTED_VERSION}" != "${VERSION}" ]]; then
+      echo "::error title=Version Mismatch::PHP version of built container '${VERSION}' doesn't match the expected version '${EXPECTED_VERSION}'."
+      exit 1
+    fi
+    
     LABELS+=("warden:php_version=${VERSION}")
   fi
 
