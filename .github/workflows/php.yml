@@ -52,10 +52,6 @@ jobs:
       matrix:
         php_version: ${{ needs.php-setup.outputs.legacy_versions }}
     steps:
-      - name: Extract Major Version
-        id: version-extractor
-        run: |
-          echo "major_php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
@@ -79,8 +75,7 @@ jobs:
         env:
           PRE_AUTH: 1
           IMAGE_NAME: ghcr.io/wardenenv/centos-php
-          EXPECTED_VERSION: ${{ matrix.php_version }}
-          PHP_VERSION: ${{ steps.version-extractor.outputs.major_php_version }}
+          PHP_VERSION: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           PUSH_FLAG: 1
           TAGS: ${{ steps.meta.outputs.tags }}
@@ -94,10 +89,6 @@ jobs:
       matrix:
         php_version: ${{ fromJSON(needs.php-setup.outputs.active_versions) }}
     steps:
-      - name: Extract Major Version
-        id: version-extractor
-        run: |
-          echo "php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
@@ -121,8 +112,7 @@ jobs:
         env:
           PRE_AUTH: 1
           IMAGE_NAME: ghcr.io/wardenenv/centos-php
-          EXPECTED_VERSION: ${{ matrix.php_version }}
-          PHP_VERSION: ${{ steps.version-extractor.outputs.major_php_version }}
+          PHP_VERSION: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           PUSH_FLAG: 1
           TAGS: ${{ steps.meta.outputs.tags }}
