@@ -35,7 +35,7 @@ fi
 
 ## iterate over and build each variant; build matrix will override to build each
 ## supported version
-MAJOR_VERSION=$(echo "${PHP_VERSION}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')
+#MAJOR_VERSION=$(echo "${PHP_VERSION}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')
 VARIANT_LIST="${VARIANT_LIST:-"cli cli-loaders fpm fpm-loaders"}"
 
 IMAGE_NAME="${IMAGE_NAME:-"ghcr.io/wardenenv/centos-php"}"
@@ -43,16 +43,17 @@ if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
   IMAGE_NAME="${IMAGE_NAME}-indev"
 fi
 
+ALLTAGS=()
 LABELS=()
 for BUILD_VARIANT in ${VARIANT_LIST}; do
   # Configure build args specific to this image build
-  BUILD_ARGS=(IMAGE_NAME)
+  BUILD_ARGS=(IMAGE_NAME PHP_VERSION)
   # Remi repos only use major versions (8.0, 8.1, 8.2)
-  BUILD_ARGS+=("PHP_VERSION=${MAJOR_VERSION}")
+  #BUILD_ARGS+=("PHP_VERSION=${MAJOR_VERSION}")
 
   # Build the image passing list of tags and build args
   printf "\e[01;31m==> building %s:%s (%s)\033[0m\n" \
-    "${IMAGE_NAME}" "${MAJOR_VERSION}" "${BUILD_VARIANT}"
+    "${IMAGE_NAME}" "${PHP_VERSION}" "${BUILD_VARIANT}"
 
   # Strip the term 'cli' from tag suffix as this is the default variant
   TAG_SUFFIX="$(echo "${BUILD_VARIANT}" | sed -E 's/^(cli$|cli-)//')"
@@ -63,6 +64,8 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
   for TAG in ${TAGS}; do
     IMAGE_TAGS+=("-t")
     IMAGE_TAGS+=("${TAG}${TAG_SUFFIX}")
+
+    ALLTAGS+=("${TAG}${TAG_SUFFIX}")
   done
 
   # Iterate and push image tags to remote registry
@@ -71,30 +74,35 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
     PUSH="--push"
   fi
 
+  TEMPBUILDTAG="warden:build"
+
   # Build the multi-platform image
   docker buildx build \
       --platform=linux/arm64,linux/amd64 \
-      -t warden-builder \
+      -t "${TEMPBUILDTAG}" \
       "php/${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
   
   # Load the image to be able to run
   docker buildx build --load \
-      -t warden-builder \
+      -t "${TEMPBUILDTAG}" \
       "php/${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
   
   # Run the image only once, and extract the full version
   if [[ "${BUILD_VARIANT}" == "cli" ]]; then
-    VERSION=$(docker run --rm warden-builder --entrypoint php -r 'echo phpversion();')
+    VERSION=$(docker run --rm -t --entrypoint php "${TEMPBUILDTAG}" -r 'echo phpversion();')
 
-    if [[ "${PHP_VERSION}" != "${VERSION}" ]]; then
-      echo "::error title=Version Mismatch::PHP version of built container '${VERSION}' doesn't match the expected version '${EXPECTED_VERSION}'."
+    if [[ "${EXACT_VERSION}" != "${VERSION}" ]]; then
+      echo "::error title=Version Mismatch::PHP version of built container '${VERSION}' doesn't match the expected version '${EXACT_VERSION}'."
       exit 1
     fi
     
-    LABELS+=("warden:php_version=${PHP_VERSION}")
+    LABELS+=("warden:php_version=${EXACT_VERSION}")
   fi
+
+  echo "::info title=Base Build Tags::${IMAGE_TAGS[@]} ${PHP_VERSION}${TAG_SUFFIX}"
+  echo "::info title=Base Build Labels::warden:variant=${BUILD_VARIANT}"
 
   # Push the images to registries
   docker buildx build ${PUSH} \
@@ -104,4 +112,7 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
     --label "warden:variant=${BUILD_VARIANT}" \
     "php/${BUILD_VARIANT}" \
     $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+
+  JSONTAGS=$(jq -cR 'split(" ")' <<< "${ALLTAGS[@]}")
+  echo "alltags=${JSONTAGS}" > 2
 done

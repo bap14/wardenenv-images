@@ -50,48 +50,15 @@ jobs:
       - php-setup
     strategy:
       matrix:
-        php_version: ${{ needs.php-setup.outputs.legacy_versions }}
+        php_version: ${{ fromJSON(needs.php-setup.outputs.legacy_versions) }}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: |
-            ghcr.io/wardenenv/centos-php
-          flavor: |
-            latest=false
-            suffix=${{ github.ref == 'refs/heads/main' && '' || '-indev' }}
-          tags: |
-            type=raw,value=${{ matrix.php_version }}
-            type=raw,value=${{ steps.version-extractor.outputs.major_php_version }}
-#       - uses: docker/login-action@v2
-#         with:
-#           registry: ghcr.io
-#           username: ${{ github.repository_owner }}
-#           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build & Push Images
-        env:
-          PRE_AUTH: 1
-          IMAGE_NAME: ghcr.io/wardenenv/centos-php
-          PHP_VERSION: ${{ matrix.php_version }}
-          VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-          PUSH_FLAG: 1
-          TAGS: ${{ steps.meta.outputs.tags }}
-        run: bash scripts/build-php-base.sh
-  active-php:
-    name: Build Active PHP Images
-    runs-on: ubuntu-latest
-    needs:
-      - php-setup
-    strategy:
-      matrix:
-        php_version: ${{ fromJSON(needs.php-setup.outputs.active_versions) }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: docker/setup-qemu-action@v2
-      - uses: docker/setup-buildx-action@v2
+      - name: Extract Major PHP version
+        id: version-extractor
+        run: |
+          echo "php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
       - uses: docker/metadata-action@v5
         id: meta
         with:
@@ -109,14 +76,67 @@ jobs:
 #           username: ${{ github.repository_owner }}
 #           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build & Push Images
+        id: build
         env:
           PRE_AUTH: 1
           IMAGE_NAME: ghcr.io/wardenenv/centos-php
-          PHP_VERSION: ${{ matrix.php_version }}
+          PHP_VERSION: ${{ steps.version-extractor.outputs.php_version }}
+          EXACT_VERSION: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           PUSH_FLAG: 1
           TAGS: ${{ steps.meta.outputs.tags }}
-        run: bash scripts/build-php-base.sh
+        run: bash scripts/build-php-base.sh 2>>$GITHUB_OUTPUT
+      - name: Test After Build
+        run: |
+          echo "::info title=Legacy Tags to Push::{{ steps.build.outputs.alltags }}"
+  active-php:
+    name: Build Active PHP Images
+    runs-on: ubuntu-latest
+    needs:
+      - php-setup
+    strategy:
+      matrix:
+        php_version: ${{ fromJSON(needs.php-setup.outputs.active_versions) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-buildx-action@v2
+      - name: Extract Major PHP version
+        id: version-extractor
+        run: |
+          echo "php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: |
+            ghcr.io/wardenenv/centos-php
+          flavor: |
+            latest=false
+            suffix=${{ github.ref == 'refs/heads/main' && '' || '-indev' }}
+          tags: |
+            type=raw,value=${{ matrix.php_version }}
+            type=raw,value=${{ steps.version-extractor.outputs.php_version }}
+#       - uses: docker/login-action@v2
+#         with:
+#           registry: ghcr.io
+#           username: ${{ github.repository_owner }}
+#           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & Push Images
+        id: build
+        env:
+          PRE_AUTH: 1
+          IMAGE_NAME: ghcr.io/wardenenv/centos-php
+          PHP_VERSION: ${{ steps.version-extractor.outputs.php_version }}
+          EXACT_VERSION: ${{ matrix.php_version }}
+          VARIANT_LIST: cli cli-loaders fpm fpm-loaders
+          PUSH_FLAG: 1
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: bash scripts/build-php-base.sh 2>>$GITHUB_OUTPUT
+      - name: Test After Build
+        env:
+          ALlTAGS: ${{ fromJSON(steps.build.outputs.alltags) }}
+        run: |
+          echo "::info title=Active Tags to Push::{{ steps.build.outputs.alltags }}"
   
 #   php-fpm:
 #     name: Build Warden PHP-FPM Images ${{ matrix.php_version }}
