@@ -62,10 +62,11 @@ jobs:
         id: meta
         with:
           images: |
-            ghcr.io/wardenenv/centos-php
+            ghcr.io/wardenenv/centos-php${{ github.ref == 'refs/heads/main' && '' || '-indev' }}
           flavor: |
             latest=false
-            suffix=${{ github.ref == 'refs/heads/main' && '' || '-indev' }}
+            prefix=
+            suffix=
           tags: |
             type=raw,value=${{ matrix.php_version }}
             type=raw,value=${{ steps.version-extractor.outputs.php_version }}
@@ -88,7 +89,7 @@ jobs:
       - name: Test After Build
         env:
           TAGS: ${{ steps.build.outputs.alltags }}
-        run: echo "::info title='Legacy Tags to Push'::${TAGS}"
+        run: echo "::notice title='Legacy Tags to Push'::${TAGS}"
   active-php:
     name: Build Active PHP Images
     runs-on: ubuntu-latest
@@ -108,10 +109,10 @@ jobs:
         id: meta
         with:
           images: |
-            ghcr.io/wardenenv/centos-php
+            ghcr.io/wardenenv/centos-php${{ github.ref == 'refs/heads/main' && '' || '-indev' }}
           flavor: |
             latest=false
-            suffix=${{ github.ref == 'refs/heads/main' && '' || '-indev' }}
+            suffix=
           tags: |
             type=raw,value=${{ matrix.php_version }}
             type=raw,value=${{ steps.version-extractor.outputs.php_version }}
@@ -134,7 +135,7 @@ jobs:
       - name: Test After Build
         env:
           TAGS: ${{ steps.build.outputs.alltags }}
-        run: echo "::info title='Active Tags to Push'::${TAGS}"
+        run: echo "::notice title='Active Tags to Push'::${TAGS}"
   
 #   php-fpm:
 #     name: Build Warden PHP-FPM Images ${{ matrix.php_version }}
