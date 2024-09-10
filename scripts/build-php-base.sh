@@ -101,9 +101,6 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
     LABELS+=("warden:php_version=${EXACT_VERSION}")
   fi
 
-  echo "::info title=Base Build Tags::${IMAGE_TAGS[@]} ${PHP_VERSION}${TAG_SUFFIX}"
-  echo "::info title=Base Build Labels::warden:variant=${BUILD_VARIANT}"
-
   # Push the images to registries
   docker buildx build ${PUSH} \
     "${IMAGE_TAGS[@]}" \
@@ -113,6 +110,5 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
     "php/${BUILD_VARIANT}" \
     $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
-  JSONTAGS=$(jq -cR 'split(" ")' <<< "${ALLTAGS[@]}")
-  echo "alltags=${JSONTAGS}" > 2
+  echo "alltags=$(jq -cR 'split(" ")' <<< "${ALLTAGS[@]}")" >> $GITHUB_OUTPUT
 done

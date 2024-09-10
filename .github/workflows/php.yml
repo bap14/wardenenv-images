@@ -57,8 +57,7 @@ jobs:
       - uses: docker/setup-buildx-action@v2
       - name: Extract Major PHP version
         id: version-extractor
-        run: |
-          echo "php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
+        run: echo "php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
       - uses: docker/metadata-action@v5
         id: meta
         with:
@@ -85,10 +84,9 @@ jobs:
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           PUSH_FLAG: 1
           TAGS: ${{ steps.meta.outputs.tags }}
-        run: bash scripts/build-php-base.sh 2>>$GITHUB_OUTPUT
+        run: bash scripts/build-php-base.sh
       - name: Test After Build
-        run: |
-          echo "::info title=Legacy Tags to Push::{{ steps.build.outputs.alltags }}"
+        run: echo "::info title=Legacy Tags to Push::{{ steps.build.outputs.alltags }}"
   active-php:
     name: Build Active PHP Images
     runs-on: ubuntu-latest
@@ -103,8 +101,7 @@ jobs:
       - uses: docker/setup-buildx-action@v2
       - name: Extract Major PHP version
         id: version-extractor
-        run: |
-          echo "php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
+        run: echo "php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
       - uses: docker/metadata-action@v5
         id: meta
         with:
@@ -131,12 +128,11 @@ jobs:
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           PUSH_FLAG: 1
           TAGS: ${{ steps.meta.outputs.tags }}
-        run: bash scripts/build-php-base.sh 2>>$GITHUB_OUTPUT
+        run: bash scripts/build-php-base.sh
       - name: Test After Build
         env:
           ALlTAGS: ${{ fromJSON(steps.build.outputs.alltags) }}
-        run: |
-          echo "::info title=Active Tags to Push::{{ steps.build.outputs.alltags }}"
+        run: echo "::info title=Active Tags to Push::{{ steps.build.outputs.alltags }}"
   
 #   php-fpm:
 #     name: Build Warden PHP-FPM Images ${{ matrix.php_version }}
