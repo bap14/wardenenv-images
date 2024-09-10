@@ -102,13 +102,13 @@ for BUILD_VARIANT in ${VARIANT_LIST}; do
   fi
 
   # Push the images to registries
-  docker buildx build ${PUSH} \
-    "${IMAGE_TAGS[@]}" \
-    -t "${PHP_VERSION}${TAG_SUFFIX}" \
-    $(printf -- "--label %s" "${LABELS[@]}") \
-    --label "warden:variant=${BUILD_VARIANT}" \
-    "php/${BUILD_VARIANT}" \
-    $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+  #docker buildx build ${PUSH} \
+  #  "${IMAGE_TAGS[@]}" \
+  #  -t "${PHP_VERSION}${TAG_SUFFIX}" \
+  #  $(printf -- "--label %s" "${LABELS[@]}") \
+  #  --label "warden:variant=${BUILD_VARIANT}" \
+  #  "php/${BUILD_VARIANT}" \
+  #  $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
   echo "alltags=$(jq -cR 'split(" ")' <<< "${ALLTAGS[@]}")" >> $GITHUB_OUTPUT
 done
