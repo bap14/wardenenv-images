@@ -86,7 +86,9 @@ jobs:
           TAGS: ${{ steps.meta.outputs.tags }}
         run: bash scripts/build-php-base.sh
       - name: Test After Build
-        run: echo "::info title=Legacy Tags to Push::{{ steps.build.outputs.alltags }}"
+        env:
+          TAGS: ${{ steps.build.outputs.alltags }}
+        run: echo "::info title='Legacy Tags to Push'::${TAGS}"
   active-php:
     name: Build Active PHP Images
     runs-on: ubuntu-latest
@@ -131,8 +133,8 @@ jobs:
         run: bash scripts/build-php-base.sh
       - name: Test After Build
         env:
-          ALlTAGS: ${{ fromJSON(steps.build.outputs.alltags) }}
-        run: echo "::info title=Active Tags to Push::{{ steps.build.outputs.alltags }}"
+          TAGS: ${{ steps.build.outputs.alltags }}
+        run: echo "::info title='Active Tags to Push'::${TAGS}"
   
 #   php-fpm:
 #     name: Build Warden PHP-FPM Images ${{ matrix.php_version }}
