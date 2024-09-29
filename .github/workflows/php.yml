@@ -1,268 +1,202 @@
-name: PHP Images
-# Temporarily disable execution to be on-demand only (for testing)
+name: Base PHP Images
 on:
   workflow_dispatch:
-#   schedule:
-#     - cron: "0 6 * * *" # 6 AM Daily
-#   push:
-#     branches:
-#       - main
-#       - develop
-#     paths:
-#       - php/**
-#       - .github/workflows/php.yml
-#       - php-fpm/**
-#       - scripts/build.sh
+  #schedule:
+  #  - cron: "0 6 * * *" # 6 AM Daily
+  #push:
+  #  branches:
+  #    - main
+  #    - develop
+  #  paths:
+  #    - php/**
+  #    - .github/workflows/php.yml
+  #    - php-fpm/**
+  #    - scripts/build.sh
 jobs:
-  php-setup:
-    name: PHP Setup
-    runs-on: ubuntu-latest
-    outputs:
-      active_versions: ${{ steps.active.outputs.minor_versions }}
-      legacy_versions: ${{ steps.legacy.outputs.php_versions }}
-    steps:
-      - name: Gather Active PHP Versions
-        id: active
-        run: |
-          PHP_ACTIVE=$(curl -o- 'https://www.php.net/releases/active' 2>/dev/null)
-          MAJOR_VERSIONS=$(echo "$PHP_ACTIVE" | jq -c '[.[]|keys[]] | sort')
-          MINOR_VERSIONS=$(echo "$PHP_ACTIVE" | jq -c '[.[]|.[]|.version] | sort')
-          echo "php_versions=${MAJOR_VERSIONS}" >> $GITHUB_OUTPUT
-          echo "minor_versions=${MINOR_VERSIONS}" >> $GITHUB_OUTPUT
-          echo "all_versions=$(echo "${MAJOR_VERSIONS}" "${MINOR_VERSIONS}" | jq -c --slurp '[ .[]|values[] ] | sort')" >> $GITHUB_OUTPUT
-          echo "::notice title=Active PHP Versions identified::${MINOR_VERSIONS}"
-      - name: Gather Legacy PHP Versions
-        id: legacy
-        env:
-          VERSION_LIST: "7.4 8.0"
-        run: |
-          LEGACY_VERSIONS="[]"
-          for VERS in ${VERSION_LIST}; do
-            VERSION=$(curl -o- "https://www.php.net/releases/?json&version=${VERS}" 2>/dev/null | jq '[ .version ]')
-            LEGACY_VERSIONS=$(echo "$LEGACY_VERSIONS" "$VERSION" | jq -c --slurp '[ .[]|values[] ] | sort')
-          done
-          echo "php_versions=$LEGACY_VERSIONS" >> $GITHUB_OUTPUT
-          echo "::notice title=Legacy PHP Versions identified::${LEGACY_VERSIONS}"
   legacy-php:
     name: Build Legacy PHP Images
     runs-on: ubuntu-latest
-    needs:
-      - php-setup
-    strategy:
-      matrix:
-        php_version: ${{ fromJSON(needs.php-setup.outputs.legacy_versions) }}
+    matrix:
+      php_version:
+        - 7.4
+        - 8.0
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
-      - name: Extract Major PHP version
-        id: version-extractor
-        run: echo "php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
-      - uses: docker/metadata-action@v5
-        id: meta
+      - uses: docker/login-action@v2
         with:
-          images: |
-            ghcr.io/wardenenv/centos-php${{ github.ref == 'refs/heads/main' && '' || '-indev' }}
-          flavor: |
-            latest=false
-            prefix=
-            suffix=
-          tags: |
-            type=raw,value=${{ matrix.php_version }}
-            type=raw,value=${{ steps.version-extractor.outputs.php_version }}
-#       - uses: docker/login-action@v2
-#         with:
-#           registry: ghcr.io
-#           username: ${{ github.repository_owner }}
-#           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build & Push Images
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Images
         id: build
         env:
-          PRE_AUTH: 1
+          #PRE_AUTH: 1
           IMAGE_NAME: ghcr.io/wardenenv/centos-php
-          PHP_VERSION: ${{ steps.version-extractor.outputs.php_version }}
-          EXACT_VERSION: ${{ matrix.php_version }}
+          VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-          PUSH_FLAG: 1
-          TAGS: ${{ steps.meta.outputs.tags }}
-        run: bash scripts/build-php-base.sh
-      - name: Test After Build
-        env:
-          TAGS: ${{ steps.build.outputs.alltags }}
-        run: echo "::notice title='Legacy Tags to Push'::${TAGS}"
-  active-php:
-    name: Build Active PHP Images
+          #PUSH_FLAG: 1
+          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
+        run: bash php/scripts/build.sh
+      - name: Push ${{ matrix.php_version }} Images
+        uses: docker/build-push-action@v6
+        # TODO: Figure out `if:` guard logic for this
+        with:
+          push: true
+          tags: ${{ fromJSON(steps.build.outputs.built_tags) }}
+  php:
+    name: Build PHP Images
     runs-on: ubuntu-latest
-    needs:
-      - php-setup
-    strategy:
-      matrix:
-        php_version: ${{ fromJSON(needs.php-setup.outputs.active_versions) }}
+    matrix:
+      php_version:
+        - 8.1
+        - 8.2
+        - 8.3
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
       - uses: docker/setup-buildx-action@v2
-      - name: Extract Major PHP version
-        id: version-extractor
-        run: echo "php_version=$(echo "${{ matrix.php_version }}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')" >> $GITHUB_OUTPUT
-      - uses: docker/metadata-action@v5
-        id: meta
+      - uses: docker/login-action@v2
         with:
-          images: |
-            ghcr.io/wardenenv/centos-php${{ github.ref == 'refs/heads/main' && '' || '-indev' }}
-          flavor: |
-            latest=false
-            suffix=
-          tags: |
-            type=raw,value=${{ matrix.php_version }}
-            type=raw,value=${{ steps.version-extractor.outputs.php_version }}
-#       - uses: docker/login-action@v2
-#         with:
-#           registry: ghcr.io
-#           username: ${{ github.repository_owner }}
-#           password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build & Push Images
-        id: build
         env:
           PRE_AUTH: 1
           IMAGE_NAME: ghcr.io/wardenenv/centos-php
-          PHP_VERSION: ${{ steps.version-extractor.outputs.php_version }}
-          EXACT_VERSION: ${{ matrix.php_version }}
+          VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           PUSH_FLAG: 1
-          TAGS: ${{ steps.meta.outputs.tags }}
-        run: bash scripts/build-php-base.sh
-      - name: Test After Build
+          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
+        run: bash php/scripts/build.sh
+
+  php-fpm:
+    name: Build Warden PHP-FPM Images ${{ matrix.php_version }}
+    runs-on: ubuntu-latest
+    needs: [php, legacy-php]
+    strategy:
+      matrix:
+        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3"]
+        php_variant: ["fpm-loaders"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & Push Images (GitHub)
         env:
-          TAGS: ${{ steps.build.outputs.alltags }}
-        run: echo "::notice title='Active Tags to Push'::${TAGS}"
-  
-#   php-fpm:
-#     name: Build Warden PHP-FPM Images ${{ matrix.php_version }}
-#     runs-on: ubuntu-latest
-#     needs: [php, legacy-php]
-#     strategy:
-#       matrix:
-#         php_version: ["7.4", "8.0", "8.1", "8.2", "8.3"]
-#         php_variant: ["fpm-loaders"]
-#     steps:
-#       - uses: actions/checkout@v3
-#       - uses: docker/setup-qemu-action@v2
-#       - uses: docker/setup-buildx-action@v2
-#       - uses: docker/login-action@v2
-#         with:
-#           registry: ghcr.io
-#           username: ${{ github.repository_owner }}
-#           password: ${{ secrets.GITHUB_TOKEN }}
-#       - name: Build & Push Images (GitHub)
-#         env:
-#           BUILD_GROUP: php-fpm
-#           PRE_AUTH: 1
-#           WARDEN_IMAGE_REPOSITORY: ghcr.io/wardenenv
-#           PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
-#           PUSH_FLAG: 1
-#           PHP_VERSION: ${{ matrix.php_version }}
-#           PHP_VARIANT: ${{ matrix.php_variant }}
-#           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
-#         run: bash scripts/build.sh "${BUILD_GROUP}"
-#       - uses: docker/login-action@v2
-#         with:
-#           username: ${{ secrets.DOCKER_USERNAME }}
-#           password: ${{ secrets.DOCKER_PASSWORD }}
-#       - name: Build & Push Images (Docker Hub)
-#         env:
-#           BUILD_GROUP: php-fpm
-#           PRE_AUTH: 1
-#           PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
-#           PUSH_FLAG: 1
-#           PHP_VERSION: ${{ matrix.php_version }}
-#           PHP_VARIANT: ${{ matrix.php_variant }}
-#           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
-#         run: bash scripts/build.sh "${BUILD_GROUP}"
-#   
-#   magento1:
-#     name: Build Warden PHP-FPM Images ${{ matrix.php_version }} (magento1)
-#     runs-on: ubuntu-latest
-#     needs: php-fpm
-#     strategy:
-#       matrix:
-#         php_version: ["7.4", "8.0", "8.1", "8.2", "8.3"]
-#         php_variant: ["fpm-loaders"]
-#     steps:
-#       - uses: actions/checkout@v3
-#       - uses: docker/setup-qemu-action@v2
-#       - uses: docker/setup-buildx-action@v2
-#       - uses: docker/login-action@v2
-#         with:
-#           registry: ghcr.io
-#           username: ${{ github.repository_owner }}
-#           password: ${{ secrets.GITHUB_TOKEN }}
-#       - name: Build & Push Images
-#         env:
-#           BUILD_GROUP: php-fpm/magento1
-#           PRE_AUTH: 1
-#           WARDEN_IMAGE_REPOSITORY: ghcr.io/wardenenv
-#           PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
-#           PUSH_FLAG: 1
-#           PHP_VERSION: ${{ matrix.php_version }}
-#           PHP_VARIANT: ${{ matrix.php_variant }}
-#           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
-#         run: bash scripts/build.sh "${BUILD_GROUP}"
-#       - uses: docker/login-action@v2
-#         with:
-#           username: ${{ secrets.DOCKER_USERNAME }}
-#           password: ${{ secrets.DOCKER_PASSWORD }}
-#       - name: Build & Push Images (Docker Hub)
-#         env:
-#           BUILD_GROUP: php-fpm/magento1
-#           PRE_AUTH: 1
-#           PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
-#           PUSH_FLAG: 1
-#           PHP_VERSION: ${{ matrix.php_version }}
-#           PHP_VARIANT: ${{ matrix.php_variant }}
-#           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
-#         run: bash scripts/build.sh "${BUILD_GROUP}"
-#   
-#   magento2:
-#     name: Build Warden PHP-FPM Images ${{ matrix.php_version }} (magento2)
-#     runs-on: ubuntu-latest
-#     needs: php-fpm
-#     strategy:
-#       matrix:
-#         php_version: ["7.4", "8.0", "8.1", "8.2", "8.3"]
-#         php_variant: ["fpm-loaders"]
-#     steps:
-#       - uses: actions/checkout@v3
-#       - uses: docker/setup-qemu-action@v2
-#       - uses: docker/setup-buildx-action@v2
-#       - uses: docker/login-action@v2
-#         with:
-#           registry: ghcr.io
-#           username: ${{ github.repository_owner }}
-#           password: ${{ secrets.GITHUB_TOKEN }}
-#       - name: Build & Push Images
-#         env:
-#           BUILD_GROUP: php-fpm/magento2
-#           PRE_AUTH: 1
-#           WARDEN_IMAGE_REPOSITORY: ghcr.io/wardenenv
-#           PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
-#           PUSH_FLAG: 1
-#           PHP_VERSION: ${{ matrix.php_version }}
-#           PHP_VARIANT: ${{ matrix.php_variant }}
-#           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
-#         run: bash scripts/build.sh "${BUILD_GROUP}"
-#       - uses: docker/login-action@v2
-#         with:
-#           username: ${{ secrets.DOCKER_USERNAME }}
-#           password: ${{ secrets.DOCKER_PASSWORD }}
-#       - name: Build & Push Images (Docker Hub)
-#         env:
-#           BUILD_GROUP: php-fpm/magento2
-#           PRE_AUTH: 1
-#           PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
-#           PUSH_FLAG: 1
-#           PHP_VERSION: ${{ matrix.php_version }}
-#           PHP_VARIANT: ${{ matrix.php_variant }}
-#           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
-#         run: bash scripts/build.sh "${BUILD_GROUP}"
-  
+          BUILD_GROUP: php-fpm
+          PRE_AUTH: 1
+          WARDEN_IMAGE_REPOSITORY: ghcr.io/wardenenv
+          PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
+          PUSH_FLAG: 1
+          PHP_VERSION: ${{ matrix.php_version }}
+          PHP_VARIANT: ${{ matrix.php_variant }}
+          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
+        run: bash scripts/build.sh "${BUILD_GROUP}"
+      - uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build & Push Images (Docker Hub)
+        env:
+          BUILD_GROUP: php-fpm
+          PRE_AUTH: 1
+          PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
+          PUSH_FLAG: 1
+          PHP_VERSION: ${{ matrix.php_version }}
+          PHP_VARIANT: ${{ matrix.php_variant }}
+          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
+        run: bash scripts/build.sh "${BUILD_GROUP}"
+
+  magento1:
+    name: Build Warden PHP-FPM Images ${{ matrix.php_version }} (magento1)
+    runs-on: ubuntu-latest
+    needs: php-fpm
+    strategy:
+      matrix:
+        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3"]
+        php_variant: ["fpm-loaders"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & Push Images
+        env:
+          BUILD_GROUP: php-fpm/magento1
+          PRE_AUTH: 1
+          WARDEN_IMAGE_REPOSITORY: ghcr.io/wardenenv
+          PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
+          PUSH_FLAG: 1
+          PHP_VERSION: ${{ matrix.php_version }}
+          PHP_VARIANT: ${{ matrix.php_variant }}
+          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
+        run: bash scripts/build.sh "${BUILD_GROUP}"
+      - uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build & Push Images (Docker Hub)
+        env:
+          BUILD_GROUP: php-fpm/magento1
+          PRE_AUTH: 1
+          PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
+          PUSH_FLAG: 1
+          PHP_VERSION: ${{ matrix.php_version }}
+          PHP_VARIANT: ${{ matrix.php_variant }}
+          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
+        run: bash scripts/build.sh "${BUILD_GROUP}"
+
+  magento2:
+    name: Build Warden PHP-FPM Images ${{ matrix.php_version }} (magento2)
+    runs-on: ubuntu-latest
+    needs: php-fpm
+    strategy:
+      matrix:
+        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3"]
+        php_variant: ["fpm-loaders"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & Push Images
+        env:
+          BUILD_GROUP: php-fpm/magento2
+          PRE_AUTH: 1
+          WARDEN_IMAGE_REPOSITORY: ghcr.io/wardenenv
+          PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
+          PUSH_FLAG: 1
+          PHP_VERSION: ${{ matrix.php_version }}
+          PHP_VARIANT: ${{ matrix.php_variant }}
+          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
+        run: bash scripts/build.sh "${BUILD_GROUP}"
+      - uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build & Push Images (Docker Hub)
+        env:
+          BUILD_GROUP: php-fpm/magento2
+          PRE_AUTH: 1
+          PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
+          PUSH_FLAG: 1
+          PHP_VERSION: ${{ matrix.php_version }}
+          PHP_VARIANT: ${{ matrix.php_variant }}
+          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
+        run: bash scripts/build.sh "${BUILD_GROUP}"

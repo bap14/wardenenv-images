@@ -37,9 +37,11 @@ fi
 ## latest version; build matrix will override to build each supported version
 VERSION_LIST="${VERSION_LIST:-"7.4"}"
 VARIANT_LIST="${VARIANT_LIST:-"cli cli-loaders fpm fpm-loaders"}"
+MINOR_VERSION=""
+BUILT_TAGS=()
 
-docker buildx create --use
-IMAGE_NAME="${IMAGE_NAME:-"davidalger/php"}"
+##### docker buildx create --use
+IMAGE_NAME="${IMAGE_NAME:-"ghcr.io/wardenenv/centos-php"}"
 if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
   IMAGE_NAME="${IMAGE_NAME}-indev"
 fi
@@ -54,14 +56,25 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     printf "\e[01;31m==> building %s:%s (%s)\033[0m\n" \
       "${IMAGE_NAME}" "${BUILD_VERSION}" "${BUILD_VARIANT}"
 
-    docker build -t "${IMAGE_NAME}:build" "${BUILD_VARIANT}" $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+    docker buildx build \
+      --platform=linux/arm64,linux/amd64 \
+      -t "${IMAGE_NAME}:build" \
+      "${BUILD_VARIANT}" \
+      $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+    
+    docker buildx build --load \
+      -t "${IMAGE_NAME}:build" \
+      "php/${BUILD_VARIANT}" \
+      $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
     # Strip the term 'cli' from tag suffix as this is the default variant
     TAG_SUFFIX="$(echo "${BUILD_VARIANT}" | sed -E 's/^(cli$|cli-)//')"
     [[ ${TAG_SUFFIX} ]] && TAG_SUFFIX="-${TAG_SUFFIX}"
 
     # Fetch the precise php version from the built image and tag it
-    MINOR_VERSION="$(docker run --rm -t --entrypoint php "${IMAGE_NAME}:build" -r 'echo phpversion();')"
+    if [[ "${BUILD_VARIANT}" == "cli" ]]; then
+      MINOR_VERSION="$(docker run --rm -t --entrypoint php "${IMAGE_NAME}:build" -r 'echo phpversion();')"
+    fi
 
     # Generate array of tags for the image being built
     IMAGE_TAGS=(
@@ -69,9 +82,29 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}"
     )
 
+    # Update the tags for the image
+    docker buildx build \
+         --platform=linux/arm64,linux/amd64 \
+         -t "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
+         -t "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
+         "${BUILD_VARIANT}" \
+         $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+    
+    BUILT_TAGS+=("${IMAGE_TAGS[@]}")
+
+    echo "::notice title=PHP Tags to Push::${BUILT_TAGS}"
+
+    echo "built_tags=$(jq -cR 'split(" ")' <<< "${BUILD_TAGS[@]}")" >> $GITHUB_OUTPUT
+
     # Iterate and push image tags to remote registry
-    if [[ ${PUSH_FLAG} != 0 ]]; then
-      docker buildx build --push --platform=linux/arm64,linux/amd64 -t "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" -t "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" "${BUILD_VARIANT}" $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
-    fi
+    # if [[ ${PUSH_FLAG} != 0 ]]; then
+    #   docker buildx build \
+    #     --push \
+    #     --platform=linux/arm64,linux/amd64 \
+    #     -t "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
+    #     -t "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
+    #     "${BUILD_VARIANT}" \
+    #     $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+    # fi
   done
 done
