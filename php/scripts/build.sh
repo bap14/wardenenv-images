@@ -64,7 +64,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     
     docker buildx build --load \
       -t "${IMAGE_NAME}:build" \
-      "php/${BUILD_VARIANT}" \
+      "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
     # Strip the term 'cli' from tag suffix as this is the default variant
