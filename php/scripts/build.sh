@@ -85,11 +85,11 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}"
     )
 
-    # Update the tags for the image
+    # Update the tags for the image, will use build cache
     docker buildx build \
          --platform=linux/arm64,linux/amd64 \
-         -t "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
-         -t "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
+         --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
+         --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
          "${BUILD_VARIANT}" \
          $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
     
@@ -99,13 +99,15 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     # Separate because of https://github.com/docker/buildx/issues/59
     docker buildx build --load \
       --platform=linux/amd64 \
-      -t "${IMAGE_NAME}:build" \
+      --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
+      --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
     
     docker buildx build --load \
       --platform=linux/arm64 \
-      -t "${IMAGE_NAME}:build" \
+      --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
+      --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
