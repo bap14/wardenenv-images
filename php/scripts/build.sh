@@ -69,7 +69,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
     
     docker buildx build --load \
-      --platform=linux/arm64
+      --platform=linux/arm64 \
       -t "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
