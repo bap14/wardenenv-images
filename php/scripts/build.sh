@@ -58,15 +58,16 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     printf "\e[01;31m==> building %s:%s (%s)\033[0m\n" \
       "${IMAGE_NAME}" "${BUILD_VERSION}" "${BUILD_VARIANT}"
 
+    # Build for all platforms at once
     docker buildx build \
       --platform=linux/amd64,linux/arm64 \
-      -t "${IMAGE_NAME}:build" \
+      --tag "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
     
     # Load the built image to run it temporarily
     docker buildx build --load \
-      -t "${IMAGE_NAME}:build" \
+      --tag "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
@@ -95,8 +96,8 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     
     BUILT_TAGS+=("${IMAGE_TAGS[@]}")
 
-    ## Load the tagged images for use in subsequent variants
-    # Separate because of https://github.com/docker/buildx/issues/59
+    # Load the tagged images for use in subsequent variants
+    #    Separate because of https://github.com/docker/buildx/issues/59
     docker buildx build --load \
       --platform=linux/amd64 \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
@@ -111,10 +112,6 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
-    echo "${BUILT_TAGS[@]}" >> $GITHUB_STEP_SUMMARY
-
-    echo "::notice title=PHP Tags to Push::${BUILT_TAGS}" >> $GITHUB_OUTPUT
-
     # Iterate and push image tags to remote registry
     # if [[ ${PUSH_FLAG} != 0 ]]; then
     #   docker buildx build \
@@ -126,6 +123,9 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     #     $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
     # fi
   done
+
+  echo "$(jq -R 'split(" ")' <<< "${BUILT_TAGS[@]}")" >> $GITHUB_STEP_SUMMARY
+  echo "::notice title=PHP ${MAJOR_VERSION} Tags to Push::${BUILT_TAGS}" >> $GITHUB_OUTPUT
 done
 
 echo "built_tags=$(jq -cR 'split(" ")' <<< "${BUILT_TAGS[@]}")" >> $GITHUB_OUTPUT
