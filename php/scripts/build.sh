@@ -57,19 +57,13 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       "${IMAGE_NAME}" "${BUILD_VERSION}" "${BUILD_VARIANT}"
 
     docker buildx build \
-      --platform=linux/amd64 \
+      --platform=linux/amd64,linux/arm64 \
       -t "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
     
-    # Separate because of https://github.com/docker/buildx/issues/59
+    # Load the built image to run it temporarily
     docker buildx build --load \
-      -t "${IMAGE_NAME}:build" \
-      "${BUILD_VARIANT}" \
-      $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
-    
-    docker buildx build --load \
-      --platform=linux/arm64 \
       -t "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
@@ -98,6 +92,19 @@ for BUILD_VERSION in ${VERSION_LIST}; do
          $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
     
     BUILT_TAGS+=("${IMAGE_TAGS[@]}")
+
+    ## Load the tagged images for use in subsequent variants
+    # Separate because of https://github.com/docker/buildx/issues/59
+    docker buildx build --load \
+      -t "${IMAGE_NAME}:build" \
+      "${BUILD_VARIANT}" \
+      $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+    
+    docker buildx build --load \
+      --platform=linux/arm64 \
+      -t "${IMAGE_NAME}:build" \
+      "${BUILD_VARIANT}" \
+      $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
     echo "::notice title=PHP Tags to Push::${BUILT_TAGS}"
 
