@@ -40,9 +40,9 @@ jobs:
           #PUSH_FLAG: 1
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
+      # TODO: Figure out `if:` guard logic for this
       - name: Push ${{ matrix.php_version }} Images
         uses: docker/build-push-action@v6
-        # TODO: Figure out `if:` guard logic for this
         with:
           push: true
           tags: ${{ fromJSON(steps.build.outputs.built_tags) }}

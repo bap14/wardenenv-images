@@ -46,7 +46,9 @@ if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
   IMAGE_NAME="${IMAGE_NAME}-indev"
 fi
 for BUILD_VERSION in ${VERSION_LIST}; do
-  MAJOR_VERSION="$(echo "${BUILD_VERSION}" | sed -E 's/([0-9])([0-9])/\1.\2/')"
+  MAJOR_VERSION="$(echo "${BUILD_VERSION}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')"
+  echo "### PHP ${MAJOR_VERSION} Tags" >> $GITHUB_STEP_SUMMARY
+
   for BUILD_VARIANT in ${VARIANT_LIST}; do
     # Configure build args specific to this image build
     export PHP_VERSION="${MAJOR_VERSION}"
@@ -96,6 +98,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     ## Load the tagged images for use in subsequent variants
     # Separate because of https://github.com/docker/buildx/issues/59
     docker buildx build --load \
+      --platform=linux/amd64 \
       -t "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
@@ -106,12 +109,9 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
-    echo "### PHP ${MAJOR_VERSION} ${BUILD_VARIANT} Tags" >> $GITHUB_STEP_SUMMARY
-    echo "${BUILT_TAGS}" >> $GITHUB_STEP_SUMMARY
+    echo "${BUILT_TAGS[@]}" >> $GITHUB_STEP_SUMMARY
 
     echo "::notice title=PHP Tags to Push::${BUILT_TAGS}" >> $GITHUB_OUTPUT
-
-    echo "built_tags=$(jq -cR 'split(" ")' <<< "${BUILD_TAGS[@]}")" >> $GITHUB_OUTPUT
 
     # Iterate and push image tags to remote registry
     # if [[ ${PUSH_FLAG} != 0 ]]; then
@@ -125,3 +125,5 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     # fi
   done
 done
+
+echo "built_tags=$(jq -cR 'split(" ")' <<< "${BUILT_TAGS[@]}")" >> $GITHUB_OUTPUT
