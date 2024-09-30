@@ -106,7 +106,10 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
-    echo "::notice title=PHP Tags to Push::${BUILT_TAGS}"
+    echo "### PHP ${MAJOR_VERSION} ${BUILD_VARIANT} Tags" >> $GITHUB_STEP_OUTPUT
+    echo "${BUILT_TAGS}" >> $GITHUB_STEP_OUTPUT
+    
+    echo "::notice title=PHP Tags to Push::${BUILT_TAGS}" >> $GITHUB_OUTPUT
 
     echo "built_tags=$(jq -cR 'split(" ")' <<< "${BUILD_TAGS[@]}")" >> $GITHUB_OUTPUT
 
