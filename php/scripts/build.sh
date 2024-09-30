@@ -56,13 +56,8 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     printf "\e[01;31m==> building %s:%s (%s)\033[0m\n" \
       "${IMAGE_NAME}" "${BUILD_VERSION}" "${BUILD_VARIANT}"
 
-    docker buildx build \
-      --platform=linux/arm64,linux/amd64 \
-      -t "${IMAGE_NAME}:build" \
-      "${BUILD_VARIANT}" \
-      $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
-    
     docker buildx build --load \
+      --platform=linux/arm64,linux/amd64 \
       -t "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
