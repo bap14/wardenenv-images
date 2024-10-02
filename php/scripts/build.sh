@@ -61,6 +61,10 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     # Build for all platforms at once
     docker buildx build \
       --platform=linux/amd64,linux/arm64 \
+      --cache-from=type=registry,ref=image:buildcache-amd64 \
+      --cache-to=type=registry,ref=image:buildcache-amd64 \
+      --cache-from=type=registry,ref=image:buildcache-arm64 \
+      --cache-to=type=registry,ref=image:buildcache-arm64 \
       --tag "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
@@ -88,18 +92,24 @@ for BUILD_VERSION in ${VERSION_LIST}; do
 
     # Update the tags for the image, will use build cache
     docker buildx build \
-         --platform=linux/arm64,linux/amd64 \
-         --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
-         --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
-         "${BUILD_VARIANT}" \
-         $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+      --platform=linux/arm64,linux/amd64 \
+      --cache-from=type=registry,ref=image:buildcache-amd64 \
+      --cache-to=type=registry,ref=image:buildcache-amd64 \
+      --cache-from=type=registry,ref=image:buildcache-arm64 \
+      --cache-to=type=registry,ref=image:buildcache-arm64 \
+      --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
+      --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
+      "${BUILD_VARIANT}" \
+      $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
     
     BUILT_TAGS+=("${IMAGE_TAGS[@]}")
 
-    # Load the tagged images for use in subsequent variants
+    # Load and push tagged images to cache
     #    Separate because of https://github.com/docker/buildx/issues/59
     docker buildx build --load \
       --platform=linux/amd64 \
+      --cache-from=type=registry,ref=image:buildcache-amd64 \
+      --cache-to=type=registry,ref=image:buildcache-amd64 \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
@@ -107,6 +117,8 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     
     docker buildx build --load \
       --platform=linux/arm64 \
+      --cache-from=type=registry,ref=image:buildcache-arm64 \
+      --cache-to=type=registry,ref=image:buildcache-arm64 \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
