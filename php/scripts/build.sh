@@ -41,12 +41,12 @@ MINOR_VERSION=""
 BUILT_TAGS=()
 
 ##### docker buildx create --use
-IMAGE_NAME="${IMAGE_NAME:-"ghcr.io/wardenenv/centos-php"}"
+IMAGE_NAME="${BASE_IMAGE_NAME:-"ghcr.io/wardenenv/centos-php"}"
 if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
   IMAGE_NAME="${IMAGE_NAME}-indev"
 fi
 for BUILD_VERSION in ${VERSION_LIST}; do
-  MAJOR_VERSION="$(echo "${BUILD_VERSION}" | sed -E 's/^([0-9]+\.[0-9]+).*$/\1/')"
+  MAJOR_VERSION="$(echo "${BUILD_VERSION}" | sed -E 's/^([0-9]+\.[0-9]+)(\..*)?$/\1/')"
   echo "### PHP ${MAJOR_VERSION} Tags" >> $GITHUB_STEP_SUMMARY
 
   for BUILD_VARIANT in ${VARIANT_LIST}; do
@@ -56,7 +56,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
 
     # Build the image passing list of tags and build args
     printf "\e[01;31m==> building %s:%s (%s)\033[0m\n" \
-      "${IMAGE_NAME}" "${BUILD_VERSION}" "${BUILD_VARIANT}"
+      "${IMAGE_NAME}" "${MAJOR_VERSION}" "${BUILD_VARIANT}"
 
     # Build for all platforms at once
       # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
