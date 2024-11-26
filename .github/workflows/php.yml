@@ -32,9 +32,9 @@ jobs:
 
           echo "major_versions=\"${MAJOR_VERSIONS}\""
           echo "minor_versions=\"${MINOR_VERSIONS}\""
-          echo "php_versions=\"$(echo "${MAJOR_VERSIONS}" "${MINOR_VERSIONS}" | jq -c '[ .[]|values[] ] | sort')\""
+          echo "php_versions=\"$(echo "${MAJOR_VERSIONS}" "${MINOR_VERSIONS}" | jq -c --slurp '[ .|values[] ] | sort')\""
 
-          echo "::notice title=Active PHP Versions identified::${MINOR_VERSIONS}" >> $GITHUB_OUTPUT
+          echo "::notice title=Active PHP Versions identified::${MINOR_VERSIONS}"
       - name: Gather Legacy PHP Versions
         id: get_legacy_versions
         env:
@@ -54,7 +54,7 @@ jobs:
           echo "php_versions=\"$LEGACY_VERSIONS\""
           echo "major_versions=\"$MAJOR_VERSIONS\""
 
-          echo "::notice title=Legacy PHP Versions identified::${LEGACY_VERSIONS}" >> $GITHUB_OUTPUT
+          echo "::notice title=Legacy PHP Versions identified::${LEGACY_VERSIONS}"
   legacy-php:
     name: Build Legacy PHP Images
     runs-on: ubuntu-latest
