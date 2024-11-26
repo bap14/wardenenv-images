@@ -1,17 +1,17 @@
 name: PHP Images
 on:
   workflow_dispatch:
-    schedule:
-      - cron: "0 6 * * *" # 6 AM Daily
-    push:
-      branches:
-        - main
-        - develop
-      paths:
-        - php/**
-        - .github/workflows/php.yml
-        - php-fpm/**
-        - scripts/build.sh
+  schedule:
+    - cron: "0 6 * * *" # 6 AM Daily
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - php/**
+      - .github/workflows/php.yml
+      - php-fpm/**
+      - scripts/build.sh
 jobs:
   php-setup:
     name: PHP Setup
