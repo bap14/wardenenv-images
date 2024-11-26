@@ -44,11 +44,11 @@ jobs:
           LEGACY_VERSIONS="[]"
           MAJOR_VERSIONS="[]"
           for VERS in ${VERSION_LIST}; do
-            VERSION=$(curl -o- "https://www.php.net/releases/?json&version=${VERS}" 2>/dev/null | jq '[ .version ]')
-            LEGACY_VERSIONS=$(echo "$LEGACY_VERSIONS" "$VERSION" | jq -c --slurp '[ .[]|values[] ] | sort')
+            VERSION=$(curl -o- "https://www.php.net/releases/?json&version=${VERS}" 2>/dev/null | jq -r '.version')
+            LEGACY_VERSIONS=$(echo $LEGACY_VERSIONS | jq -c --arg newVers $VERSION '.[ . | length ] |= . + $newVers | sort')
 
-            MAJOR_VERSION=$(echo "$VERSION" | sed -E 's/([0-9])([0-9])/\1.\2/'))
-            MAJOR_VERSIONS=$(echo "$MAJOR_VERSIONS" | jq -c --arg newVers "$MAJOR_VERSION" '.[ . | length ] |= . + $newVers | sort')
+            MAJOR_VERSION=$(echo $VERSION | sed -E 's/([0-9]+)\.([0-9]+)(\.[0-9]+)?/\1.\2/')
+            MAJOR_VERSIONS=$(echo $MAJOR_VERSIONS | jq -c --arg newVers $MAJOR_VERSION '.[ . | length ] |= . + $newVers | sort')
           done
           
           echo "php_versions=\"$LEGACY_VERSIONS\""
