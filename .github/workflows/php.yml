@@ -27,12 +27,12 @@ jobs:
         id: get_active_versions
         run: |
           PHP_ACTIVE=$(curl -o- 'https://www.php.net/releases/active' 2>/dev/null)
-          MAJOR_VERSIONS=$(echo "$PHP_ACTIVE" | jq '[.[]|keys[]] | sort')
-          MINOR_VERSIONS=$(echo "$PHP_ACTIVE" | jq '[.[]|.[]|.version] | sort')
+          MAJOR_VERSIONS=$(echo "$PHP_ACTIVE" | jq -c '[.[]|keys[]] | sort')
+          MINOR_VERSIONS=$(echo "$PHP_ACTIVE" | jq -c '[.[]|.[]|.version] | sort')
 
-          echo "major_versions=${MAJOR_VERSIONS}"
-          echo "minor_versions=${MINOR_VERSIONS}"
-          echo "php_versions=$(echo "${MAJOR_VERSIONS}" "${MINOR_VERSIONS}" | jq '[ .[]|values[] ] | sort')"
+          echo "major_versions=\"${MAJOR_VERSIONS}\""
+          echo "minor_versions=\"${MINOR_VERSIONS}\""
+          echo "php_versions=\"$(echo "${MAJOR_VERSIONS}" "${MINOR_VERSIONS}" | jq -c '[ .[]|values[] ] | sort')\""
 
           echo "::notice title=Active PHP Versions identified::${MINOR_VERSIONS}" >> $GITHUB_OUTPUT
       - name: Gather Legacy PHP Versions
@@ -45,10 +45,10 @@ jobs:
           MAJOR_VERSIONS="[]"
           for VERS in ${VERSION_LIST}; do
             VERSION=$(curl -o- "https://www.php.net/releases/?json&version=${VERS}" 2>/dev/null | jq '[ .version ]')
-            LEGACY_VERSIONS=$(echo "$LEGACY_VERSIONS" "$VERSION" | jq --slurp '[ .[]|values[] ] | sort')
+            LEGACY_VERSIONS=$(echo "$LEGACY_VERSIONS" "$VERSION" | jq -c --slurp '[ .[]|values[] ] | sort')
 
             MAJOR_VERSION=$(echo "$VERSION" | sed -E 's/([0-9])([0-9])/\1.\2/'))
-            MAJOR_VERSIONS=$(echo "$MAJOR_VERSIONS" | jq --arg newVers "$MAJOR_VERSION" '.[ . | length ] |= . + $newVers | sort')
+            MAJOR_VERSIONS=$(echo "$MAJOR_VERSIONS" | jq -c --arg newVers "$MAJOR_VERSION" '.[ . | length ] |= . + $newVers | sort')
           done
           
           echo "php_versions=\"$LEGACY_VERSIONS\""
