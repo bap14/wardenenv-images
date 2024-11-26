@@ -29,9 +29,9 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_TOKEN }}
       - name: Build Images
-        id: build
+        id: build-legacy
         env:
           #PRE_AUTH: 1
           IMAGE_NAME: ghcr.io/wardenenv/centos-php
@@ -45,8 +45,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: ${{ fromJSON(steps.build.outputs.built_tags) }}
-  php:
+          tags: ${{ fromJSON(steps.build-legacy.outputs.built_tags) }}
+  active-php:
     name: Build PHP Images
     runs-on: ubuntu-latest
     strategy:
@@ -55,6 +55,7 @@ jobs:
           - "8.1"
           - "8.2"
           - "8.3"
+          - "8.4"
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
@@ -63,24 +64,31 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_TOKEN }}
       - name: Build & Push Images
+        id: build-active
         env:
-          PRE_AUTH: 1
+          #PRE_AUTH: 1
           IMAGE_NAME: ghcr.io/wardenenv/centos-php
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-          PUSH_FLAG: 1
+          #PUSH_FLAG: 1
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
+      # TODO: Figure out `if:` guard logic for this
+      - name: Push ${{ matrix.php_version }} Images
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ fromJSON(steps.build-active.outputs.built_tags) }}
 
   php-fpm:
     name: Build Warden PHP-FPM Images ${{ matrix.php_version }}
     runs-on: ubuntu-latest
-    needs: [php, legacy-php]
+    needs: [active-php, legacy-php]
     strategy:
       matrix:
-        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3"]
+        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
         php_variant: ["fpm-loaders"]
     steps:
       - uses: actions/checkout@v3
@@ -123,7 +131,7 @@ jobs:
     needs: php-fpm
     strategy:
       matrix:
-        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3"]
+        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
         php_variant: ["fpm-loaders"]
     steps:
       - uses: actions/checkout@v3
@@ -166,7 +174,7 @@ jobs:
     needs: php-fpm
     strategy:
       matrix:
-        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3"]
+        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
         php_variant: ["fpm-loaders"]
     steps:
       - uses: actions/checkout@v3
