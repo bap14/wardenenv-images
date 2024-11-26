@@ -60,7 +60,7 @@ jobs:
 
           echo "::notice title=Legacy PHP Versions identified::${LEGACY_VERSIONS}"
   legacy-php:
-    name: Build Legacy PHP Images
+    name: Build Legacy PHP Image
     runs-on: ubuntu-latest
     needs:
       - php-setup
@@ -80,10 +80,8 @@ jobs:
         id: build-legacy
         env:
           PRE_AUTH: 1
-          #IMAGE_NAME: ${{ vars.IMAGE_NAME || 'ghcr.io/wardenenv/centos-php' }}
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-          #PUSH_FLAG: 0
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
         # TODO: Determine proper guard for this step to only push in certain instances
@@ -93,7 +91,7 @@ jobs:
           push: true
           tags: ${{ fromJSON(steps.build-legacy.outputs.built_tags) }}
   active-php:
-    name: Build PHP Images
+    name: Build Active PHP Image
     runs-on: ubuntu-latest
     needs:
       - php-setup
@@ -113,10 +111,8 @@ jobs:
         id: build-active
         env:
           PRE_AUTH: 1
-          #IMAGE_NAME: ${{ vars.IMAGE_NAME || 'ghcr.io/wardenenv/centos-php' }}
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-          #PUSH_FLAG: 0
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
       # TODO: Determine proper guard for this step to only push in certain instances

@@ -59,12 +59,12 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       "${IMAGE_NAME}" "${BUILD_VERSION}" "${BUILD_VARIANT}"
 
     # Build for all platforms at once
+      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
+      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
+      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
+      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build \
       --platform=linux/amd64,linux/arm64 \
-      --cache-from=type=registry,ref=image:buildcache-amd64 \
-      --cache-to=type=registry,ref=image:buildcache-amd64 \
-      --cache-from=type=registry,ref=image:buildcache-arm64 \
-      --cache-to=type=registry,ref=image:buildcache-arm64 \
       --tag "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
@@ -91,12 +91,12 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     )
 
     # Update the tags for the image, will use build cache
+      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
+      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
+      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
+      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build \
       --platform=linux/arm64,linux/amd64 \
-      --cache-from=type=registry,ref=image:buildcache-amd64 \
-      --cache-to=type=registry,ref=image:buildcache-amd64 \
-      --cache-from=type=registry,ref=image:buildcache-arm64 \
-      --cache-to=type=registry,ref=image:buildcache-arm64 \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
@@ -107,19 +107,19 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     # Load and push tagged images to cache
     #    Separate because of https://github.com/docker/buildx/issues/59
     #  These are alrady in the cache, so this step should only take a few seconds
+      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
+      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
     docker buildx build --load \
       --platform=linux/amd64 \
-      --cache-from=type=registry,ref=image:buildcache-amd64 \
-      --cache-to=type=registry,ref=image:buildcache-amd64 \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
     
+      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
+      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build --load \
       --platform=linux/arm64 \
-      --cache-from=type=registry,ref=image:buildcache-arm64 \
-      --cache-to=type=registry,ref=image:buildcache-arm64 \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
