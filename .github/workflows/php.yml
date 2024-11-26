@@ -20,8 +20,8 @@ jobs:
       php_major_versions: ${{ steps.get_active_versions.outputs.major_versions }}
       php_minor_versions: ${{ steps.get_active_versions.outputs.minor_versions }}
       php_versions: ${{ steps.get_active_versions.outputs.php_versions }}
-      legacy_versions: ${{ steps.get_legacy_versions.outputs.php_versions }}
       legacy_major_versions: ${{ steps.get_legacy_versions.outputs.major_versions }}
+      legacy_minor_versions: ${{ steps.get_legacy_versions.outputs.php_versions }}
     steps:
       - name: Gather Active PHP Versions
         id: get_active_versions
@@ -62,7 +62,7 @@ jobs:
       - php-setup
     strategy:
       matrix:
-        php_version: ${{ fromJSON(needs.php-setup.outputs.legacy_versions) }}
+        php_version: ${{ fromJSON(needs.php-setup.outputs.legacy_minor_versions) }}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
@@ -90,6 +90,8 @@ jobs:
   active-php:
     name: Build PHP Images
     runs-on: ubuntu-latest
+    needs:
+      - php-setup
     strategy:
       matrix:
         php_version: ${{ fromJSON(needs.php-setup.outputs.php_minor_versions) }}
@@ -253,7 +255,7 @@ jobs:
         run: bash scripts/build.sh "${BUILD_GROUP}"
 
   orocommerce:
-    name: Build Warden PHP-FPM Images ${{ matrix.php_version }} (OroCommerce)
+    name: Build Warden PHP-FPM Images (OroCommerce)
     runs-on: ubuntu-latest
     needs: php-fpm
     strategy:
