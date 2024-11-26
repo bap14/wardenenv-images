@@ -1,24 +1,68 @@
-name: Base PHP Images
+name: PHP Images
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 6 * * *" # 6 AM Daily
-  push:
-    branches:
-      - main
-      - develop
-    paths:
-      - php/**
-      - .github/workflows/php.yml
-      - php-fpm/**
-      - scripts/build.sh
+    schedule:
+      - cron: "0 6 * * *" # 6 AM Daily
+    push:
+      branches:
+        - main
+        - develop
+      paths:
+        - php/**
+        - .github/workflows/php.yml
+        - php-fpm/**
+        - scripts/build.sh
 jobs:
+  php-setup:
+    name: PHP Setup
+    runs-on: ubuntu-latest
+    outputs:
+      php_major_versions: ${{ steps.get_active_versions.outputs.major_versions }}
+      php_minor_versions: ${{ steps.get_active_versions.outputs.minor_versions }}
+      php_versions: ${{ steps.get_active_versions.outputs.php_versions }}
+      legacy_versions: ${{ steps.get_legacy_versions.outputs.php_versions }}
+      legacy_major_versions: ${{ steps.get_legacy_versions.outputs.major_versions }}
+    steps:
+      - name: Gather Active PHP Versions
+        id: get_active_versions
+        run: |
+          PHP_ACTIVE=$(curl -o- 'https://www.php.net/releases/active' 2>/dev/null)
+          MAJOR_VERSIONS=$(echo "$PHP_ACTIVE" | jq '[.[]|keys[]] | sort')
+          MINOR_VERSIONS=$(echo "$PHP_ACTIVE" | jq '[.[]|.[]|.version] | sort')
+
+          echo "major_versions=${MAJOR_VERSIONS}"
+          echo "minor_versions=${MINOR_VERSIONS}"
+          echo "php_versions=$(echo "${MAJOR_VERSIONS}" "${MINOR_VERSIONS}" | jq '[ .[]|values[] ] | sort')"
+
+          echo "::notice title=Active PHP Versions identified::${MINOR_VERSIONS}" >> $GITHUB_OUTPUT
+      - name: Gather Legacy PHP Versions
+        id: get_legacy_versions
+        env:
+          # MINIMUM_VERSION: "7.4"
+          VERSION_LIST: "7.4 8.0"
+        run: |
+          LEGACY_VERSIONS="[]"
+          MAJOR_VERSIONS="[]"
+          for VERS in ${VERSION_LIST}; do
+            VERSION=$(curl -o- "https://www.php.net/releases/?json&version=${VERS}" 2>/dev/null | jq '[ .version ]')
+            LEGACY_VERSIONS=$(echo "$LEGACY_VERSIONS" "$VERSION" | jq --slurp '[ .[]|values[] ] | sort')
+
+            MAJOR_VERSION=$(echo "$VERSION" | sed -E 's/([0-9])([0-9])/\1.\2/'))
+            MAJOR_VERSIONS=$(echo "$MAJOR_VERSIONS" | jq --arg newVers "$MAJOR_VERSION" '.[ . | length ] |= . + $newVers | sort')
+          done
+          
+          echo "php_versions=\"$LEGACY_VERSIONS\""
+          echo "major_versions=\"$MAJOR_VERSIONS\""
+
+          echo "::notice title=Legacy PHP Versions identified::${LEGACY_VERSIONS}" >> $GITHUB_OUTPUT
   legacy-php:
     name: Build Legacy PHP Images
     runs-on: ubuntu-latest
+    needs:
+      - php-setup
     strategy:
       matrix:
-        php_version: [ "7.4", "8.0", "8.1" ]
+        php_version: ${{ fromJSON(needs.php-setup.outputs.legacy_versions) }}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
@@ -27,22 +71,28 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_TOKEN }}
       - name: Build & Push Images
+        id: build-legacy
         env:
           PRE_AUTH: 1
           IMAGE_NAME: ghcr.io/wardenenv/centos-php
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-          PUSH_FLAG: 1
+          #PUSH_FLAG: 0
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
-  php:
+        # TODO: Determine proper guard for this step to only push in certain instances
+      - uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ fromJSON(steps.build-legacy.outputs.built_tags) }}
+  active-php:
     name: Build PHP Images
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php_version: ["8.2", "8.3", "8.4"]
+        php_version: ${{ fromJSON(needs.php-setup.outputs.php_minor_versions) }}
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-qemu-action@v2
@@ -51,24 +101,31 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_TOKEN }}
       - name: Build & Push Images
+        id: build-active
         env:
           PRE_AUTH: 1
           IMAGE_NAME: ghcr.io/wardenenv/centos-php
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-          PUSH_FLAG: 1
+          #PUSH_FLAG: 0
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
-
+      # TODO: Determine proper guard for this step to only push in certain instances
+      - uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ fromJSON(steps.build-active.outputs.built_tags) }}
   php-fpm:
     name: Build Warden PHP-FPM Images ${{ matrix.php_version }}
     runs-on: ubuntu-latest
-    needs: [php, legacy-php]
+    needs: [active-php, legacy-php]
     strategy:
       matrix:
-        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
+        php_version:
+          - ${{ fromJSON(needs.php-setup.outputs.php_major_versions) }}
+          - ${{ fromJSON(needs.php-setup.outputs.legacy_major_versions) }}
         php_variant: ["fpm-loaders"]
     steps:
       - uses: actions/checkout@v3
@@ -111,7 +168,9 @@ jobs:
     needs: php-fpm
     strategy:
       matrix:
-        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
+        php_version:
+          - ${{ fromJSON(needs.php-setup.outputs.php_major_versions) }}
+          - ${{ fromJSON(needs.php-setup.outputs.legacy_major_versions) }}
         php_variant: ["fpm-loaders"]
     steps:
       - uses: actions/checkout@v3
@@ -154,7 +213,9 @@ jobs:
     needs: php-fpm
     strategy:
       matrix:
-        php_version: ["7.4", "8.0", "8.1", "8.2", "8.3", "8.4"]
+        php_version:
+          - ${{ fromJSON(needs.php-setup.outputs.php_major_versions) }}
+          - ${{ fromJSON(needs.php-setup.outputs.legacy_major_versions) }}
         php_variant: ["fpm-loaders"]
     steps:
       - uses: actions/checkout@v3
@@ -197,7 +258,8 @@ jobs:
     needs: php-fpm
     strategy:
       matrix:
-        php_version: ["8.2", "8.3", "8.4"]
+        php_version:
+          - ${{ fromJSON(needs.php-setup.outputs.php_major_versions) }}
         php_variant: ["fpm-loaders"]
     steps:
       - uses: actions/checkout@v3
@@ -233,3 +295,8 @@ jobs:
           PHP_VARIANT: ${{ matrix.php_variant }}
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash scripts/build.sh "${BUILD_GROUP}"
+          VERSION_LIST: ${{ fromJSON(needs.php-setup.outputs.legacy_versions) }}
+          VARIANT_LIST: cli cli-loaders fpm fpm-loaders
+          PUSH_FLAG: 1
+          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
+        run: bash php/build-php-base.sh
