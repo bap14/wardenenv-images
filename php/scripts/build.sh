@@ -39,6 +39,7 @@ VERSION_LIST="${VERSION_LIST:-"7.4"}"
 VARIANT_LIST="${VARIANT_LIST:-"cli cli-loaders fpm fpm-loaders"}"
 MINOR_VERSION=""
 BUILT_TAGS=()
+BUILDX_CACHE="--cache-from=type=local,dest=/tmp/.buildx-cache --cache-to=local,mode=max,dest=/tmp/.buildx-cache"
 
 printf "\e[01;31m==> base image name %s\033[0m\n" \
       "${BASE_IMAGE_NAME}"
@@ -69,8 +70,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build \
       --platform=linux/amd64,linux/arm64 \
-      --cache-from=type=gha \
-      --cache-to=type=gha \
+      $BUILDX_CACHE \
       --tag "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
@@ -103,8 +103,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build \
       --platform=linux/arm64,linux/amd64 \
-      --cache-from=type=gha \
-      --cache-to=type=gha \
+      $BUILDX_CACHE \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
@@ -119,8 +118,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
     docker buildx build --load \
       --platform=linux/amd64 \
-      --cache-from=type=gha \
-      --cache-to=type=gha \
+      $BUILDX_CACHE \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
@@ -130,8 +128,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build --load \
       --platform=linux/arm64 \
-      --cache-from=type=gha \
-      --cache-to=type=gha \
+      $BUILDX_CACHE \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
