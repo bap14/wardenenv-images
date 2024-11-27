@@ -40,8 +40,11 @@ VARIANT_LIST="${VARIANT_LIST:-"cli cli-loaders fpm fpm-loaders"}"
 MINOR_VERSION=""
 BUILT_TAGS=()
 
-##### docker buildx create --use
+printf "\e[01;31m==> base image name %s\033[0m\n" \
+      "${BASE_IMAGE_NAME}"
 IMAGE_NAME="${BASE_IMAGE_NAME:-"ghcr.io/wardenenv/centos-php"}"
+printf "\e[01;31m==> final base image name %s\033[0m\n" \
+      "${IMAGE_NAME}"
 if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
   IMAGE_NAME="${IMAGE_NAME}-indev"
 fi
@@ -65,6 +68,8 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build \
       --platform=linux/amd64,linux/arm64 \
+      --cache-from=type=gha \
+      --cache-to=type=gha \
       --tag "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
@@ -97,6 +102,8 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build \
       --platform=linux/arm64,linux/amd64 \
+      --cache-from=type=gha \
+      --cache-to=type=gha \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
@@ -111,6 +118,8 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
     docker buildx build --load \
       --platform=linux/amd64 \
+      --cache-from=type=gha \
+      --cache-to=type=gha \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
@@ -120,6 +129,8 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build --load \
       --platform=linux/arm64 \
+      --cache-from=type=gha \
+      --cache-to=type=gha \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
