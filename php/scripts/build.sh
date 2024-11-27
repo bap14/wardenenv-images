@@ -39,13 +39,13 @@ VERSION_LIST="${VERSION_LIST:-"7.4"}"
 VARIANT_LIST="${VARIANT_LIST:-"cli cli-loaders fpm fpm-loaders"}"
 MINOR_VERSION=""
 BUILT_TAGS=()
-BUILDX_CACHE="--cache-from=type=local,dest=/tmp/.buildx-cache --cache-to=local,mode=max,dest=/tmp/.buildx-cache"
+# --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
+# --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
+# --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
+# --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
+BUILDX_CACHE="--cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,mode=max,dest=/tmp/.buildx-cache"
 
-printf "\e[01;31m==> base image name %s\033[0m\n" \
-      "${BASE_IMAGE_NAME}"
 IMAGE_NAME="${BASE_IMAGE_NAME:-"ghcr.io/wardenenv/centos-php"}"
-printf "\e[01;31m==> final base image name %s\033[0m\n" \
-      "${IMAGE_NAME}"
 if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
   IMAGE_NAME="${IMAGE_NAME}-indev"
 fi
@@ -64,10 +64,6 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       "${IMAGE_NAME}" "${MAJOR_VERSION}" "${BUILD_VARIANT}"
 
     # Build for all platforms at once
-      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
-      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
-      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
-      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build \
       --platform=linux/amd64,linux/arm64 \
       $BUILDX_CACHE \
@@ -97,10 +93,6 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     )
 
     # Update the tags for the image, will use build cache
-      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
-      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
-      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
-      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build \
       --platform=linux/arm64,linux/amd64 \
       $BUILDX_CACHE \
@@ -114,8 +106,6 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     # Load and push tagged images to cache
     #    Separate because of https://github.com/docker/buildx/issues/59
     #  These are alrady in the cache, so this step should only take a few seconds
-      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
-      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
     docker buildx build --load \
       --platform=linux/amd64 \
       $BUILDX_CACHE \
@@ -124,8 +114,6 @@ for BUILD_VERSION in ${VERSION_LIST}; do
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
     
-      # --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
-      # --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
     docker buildx build --load \
       --platform=linux/arm64 \
       $BUILDX_CACHE \
@@ -147,7 +135,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
   done
 
   echo "$(jq -R 'split(" ")' <<< "${BUILT_TAGS[@]}")" >> $GITHUB_STEP_SUMMARY
-  echo "::notice title=PHP ${MAJOR_VERSION} Tags to Push::${BUILT_TAGS}" >> $GITHUB_OUTPUT
+  echo "::notice title=PHP ${MAJOR_VERSION} Tags to Push::${BUILT_TAGS}"
 done
 
 echo "built_tags=$(jq -cR 'split(" ")' <<< "${BUILT_TAGS[@]}")" >> $GITHUB_OUTPUT
