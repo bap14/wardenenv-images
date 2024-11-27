@@ -55,6 +55,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
   for BUILD_VARIANT in ${VARIANT_LIST}; do
     # Configure build args specific to this image build
     export PHP_VERSION="${MAJOR_VERSION}"
+    export IMAGE_NAME
     BUILD_ARGS=(IMAGE_NAME PHP_VERSION)
 
     # Build the image passing list of tags and build args
