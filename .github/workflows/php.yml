@@ -54,98 +54,97 @@ jobs:
             fi
           done
 
-          echo "active_versions=$(echo $ACTIVE_VERSIONS | jq -c '.major + .minor' | sort)"
+          echo "active_versions=$(echo $ACTIVE_VERSIONS | jq -c '.major + .minor | sort')"
           echo "active_major_versions=$(echo $ACTIVE_VERSIONS | jq -c '.major')"
           echo "active_minor_versions=$(echo $ACTIVE_VERSIONS | jq -c '.minor')"
           
-          echo "legacy_versions=$(echo $LEGACY_VERSIONS | jq -c '.major + .minor' | sort)"
+          echo "legacy_versions=$(echo $LEGACY_VERSIONS | jq -c '.major + .minor | sort')"
           echo "legacy_major_versions=$(echo $LEGACY_VERSIONS | jq -c '.major')"
           echo "legacy_minor_versions=$(echo $LEGACY_VERSIONS | jq -c '.minor')"
 
           echo "::notice title=Active PHP Versions Identified::$(echo $ACTIVE_VERSIONS | jq -c '.major + .minor')"
           echo "::notice title=Legacy PHP Versions Identified::$(echo $LEGACY_VERSIONS | jq -c '.major + .minor')"
-#  legacy-php:
-#    name: Build Legacy PHP Image
-#    runs-on: ubuntu-latest
-#    needs:
-#      - php-setup
-#    strategy:
-#      matrix:
-#        php_version: ${{ fromJSON(needs.php-setup.outputs.legacy_minor_versions) }}
-#    steps:
-#      - uses: actions/checkout@v3
-#      - uses: docker/setup-qemu-action@v2
-#      - uses: docker/setup-buildx-action@v2
-#        with:
-#          # network=host driver-opt needed to push to local registry
-#          driver-opts: network=host
-#      - uses: docker/login-action@v2
-#        with:
-#          registry: ghcr.io
-#          username: ${{ github.repository_owner }}
-#          password: ${{ secrets.GITHUB_TOKEN }}
-#      - name: Cache Docker layers
-#        uses: actions/cache@v4
-#        with:
-#          path: /tmp/.buildx-cache
-#          key: ${{ runner.os }}-buildx-${{ github.sha }}
-#          restore-keys: |
-#            ${{ runner.os }}-buildx-
-#      - name: Build Images
-#        id: build-legacy
-#        env:
-#          PRE_AUTH: 1
-#          VERSION_LIST: ${{ matrix.php_version }}
-#          VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-#          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
-#        run: bash php/scripts/build.sh
-#        # TODO: Determine proper guard for this step to only push in certain instances
-#      - name: Push Built Images
-#        uses: docker/build-push-action@v6
-#        with:
-#          push: true
-#          tags: ${{ fromJSON(steps.build-legacy.outputs.built_tags) }}
-#  active-php:
-#    name: Build Active PHP Image
-#    runs-on: ubuntu-latest
-#    needs:
-#      - php-setup
-#    strategy:
-#      matrix:
-#        php_version: ${{ fromJSON(needs.php-setup.outputs.php_minor_versions) }}
-#    steps:
-#      - uses: actions/checkout@v3
-#      - uses: docker/setup-qemu-action@v2
-#      - uses: docker/setup-buildx-action@v2
-#        with:
-#          # network=host driver-opt needed to push to local registry
-#          driver-opts: network=host
-#      - uses: docker/login-action@v2
-#        with:
-#          registry: ghcr.io
-#          username: ${{ github.repository_owner }}
-#          password: ${{ secrets.GITHUB_TOKEN }}
-#      - name: Cache Docker layers
-#        uses: actions/cache@v4
-#        with:
-#          path: /tmp/.buildx-cache
-#          key: ${{ runner.os }}-buildx-${{ github.sha }}
-#          restore-keys: |
-#            ${{ runner.os }}-buildx-
-#      - name: Build Images
-#        id: build-active
-#        env:
-#          PRE_AUTH: 1
-#          VERSION_LIST: ${{ matrix.php_version }}
-#          VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-#          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
-#        run: bash php/scripts/build.sh
-#      # TODO: Determine proper guard for this step to only push in certain instances
-#      - name: Push Built Images
-#        uses: docker/build-push-action@v6
-#        with:
-#          push: true
-#          tags: ${{ fromJSON(steps.build-active.outputs.built_tags) }}
+  legacy-php:
+    name: Build Legacy PHP Images
+    runs-on: ubuntu-latest
+    needs:
+      - php-setup
+    strategy:
+      matrix:
+        php_version: ${{ fromJSON(needs.php-setup.outputs.legacy_major_versions) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+        with:
+          platforms: |
+            linux/amd64
+            linux/arm64
+        #  # network=host driver-opt needed to push to local registry
+        #  driver-opts: network=host
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Images
+        id: build-legacy
+        env:
+          PRE_AUTH: 1
+          VERSION_LIST: ${{ matrix.php_version }}
+          VARIANT_LIST: cli cli-loaders fpm fpm-loaders
+          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
+        run: bash php/scripts/build.sh
+        # TODO: Determine proper guard for this step to only push in certain instances
+      - name: Push Built Images
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ fromJSON(steps.build-legacy.outputs.built_tags) }}
+  active-php:
+    name: Build Active PHP Images
+    runs-on: ubuntu-latest
+    needs:
+      - php-setup
+    strategy:
+      matrix:
+        php_version: ${{ fromJSON(needs.php-setup.outputs.active_major_versions) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+        with:
+          platforms: |
+            linux/amd64
+            linux/arm64
+        #  # network=host driver-opt needed to push to local registry
+        #  driver-opts: network=host
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+      - name: Build Images
+        id: build-active
+        env:
+          PRE_AUTH: 1
+          VERSION_LIST: ${{ matrix.php_version }}
+          VARIANT_LIST: cli cli-loaders fpm fpm-loaders
+          INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
+        run: bash php/scripts/build.sh
+      # TODO: Determine proper guard for this step to only push in certain instances
+      - name: Push Built Images
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ fromJSON(steps.build-active.outputs.built_tags) }}
 #  php-fpm:
 #    name: Build Warden PHP-FPM Images ${{ matrix.php_version }}
 #    runs-on: ubuntu-latest

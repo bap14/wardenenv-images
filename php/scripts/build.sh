@@ -39,16 +39,15 @@ VERSION_LIST="${VERSION_LIST:-"7.4"}"
 VARIANT_LIST="${VARIANT_LIST:-"cli cli-loaders fpm fpm-loaders"}"
 MINOR_VERSION=""
 BUILT_TAGS=()
-# --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
-# --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-amd64 \
-# --cache-from=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
-# --cache-to=type=registry,ref=${IMAGE_NAME}:buildcache-arm64 \
-BUILDX_CACHE="--cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,mode=max,dest=/tmp/.buildx-cache"
 
 IMAGE_NAME="${BASE_IMAGE_NAME:-"ghcr.io/wardenenv/centos-php"}"
 if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
   IMAGE_NAME="${IMAGE_NAME}-indev"
 fi
+
+BUILDX_ARGS=("--cache-from=type=gha")
+BUILDX_ARGS=("--cache-to=type=gha")
+
 for BUILD_VERSION in ${VERSION_LIST}; do
   MAJOR_VERSION="$(echo "${BUILD_VERSION}" | sed -E 's/^([0-9]+\.[0-9]+)(\..*)?$/\1/')"
   echo "### PHP ${MAJOR_VERSION} Tags" >> $GITHUB_STEP_SUMMARY
@@ -66,7 +65,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     # Build for all platforms at once
     docker buildx build \
       --platform=linux/amd64,linux/arm64 \
-      $BUILDX_CACHE \
+      "${BUILDX_ARGS[@]}" \
       --tag "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
@@ -95,7 +94,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     # Update the tags for the image, will use build cache
     docker buildx build \
       --platform=linux/arm64,linux/amd64 \
-      $BUILDX_CACHE \
+      "${BUILDX_ARGS[@]}" \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
@@ -108,7 +107,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     #  These are alrady in the cache, so this step should only take a few seconds
     docker buildx build --load \
       --platform=linux/amd64 \
-      $BUILDX_CACHE \
+      "${BUILDX_ARGS[@]}" \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
@@ -116,7 +115,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     
     docker buildx build --load \
       --platform=linux/arm64 \
-      $BUILDX_CACHE \
+      "${BUILDX_ARGS[@]}" \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
