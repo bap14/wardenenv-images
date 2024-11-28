@@ -45,9 +45,6 @@ if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
   IMAGE_NAME="${IMAGE_NAME}-indev"
 fi
 
-BUILDX_ARGS=("--cache-from=type=gha")
-BUILDX_ARGS=("--cache-to=type=gha")
-
 for BUILD_VERSION in ${VERSION_LIST}; do
   MAJOR_VERSION="$(echo "${BUILD_VERSION}" | sed -E 's/^([0-9]+\.[0-9]+)(\..*)?$/\1/')"
   echo "### PHP ${MAJOR_VERSION} Tags" >> $GITHUB_STEP_SUMMARY
@@ -65,7 +62,6 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     # Build for all platforms at once
     docker buildx build \
       --platform=linux/amd64,linux/arm64 \
-      "${BUILDX_ARGS[@]}" \
       --tag "${IMAGE_NAME}:build" \
       "${BUILD_VARIANT}" \
       $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
@@ -94,7 +90,6 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     # Update the tags for the image, will use build cache
     docker buildx build \
       --platform=linux/arm64,linux/amd64 \
-      "${BUILDX_ARGS[@]}" \
       --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
       --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
       "${BUILD_VARIANT}" \
@@ -102,35 +97,16 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     
     BUILT_TAGS+=("${IMAGE_TAGS[@]}")
 
-    # Load and push tagged images to cache
-    #    Separate because of https://github.com/docker/buildx/issues/59
-    #  These are alrady in the cache, so this step should only take a few seconds
-    docker buildx build --load \
-      --platform=linux/amd64 \
-      "${BUILDX_ARGS[@]}" \
-      --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
-      --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
-      "${BUILD_VARIANT}" \
-      $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
-    
-    docker buildx build --load \
-      --platform=linux/arm64 \
-      "${BUILDX_ARGS[@]}" \
-      --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
-      --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
-      "${BUILD_VARIANT}" \
-      $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
-
-    # Iterate and push image tags to remote registry
-    # if [[ ${PUSH_FLAG} != 0 ]]; then
-    #   docker buildx build \
-    #     --push \
-    #     --platform=linux/arm64,linux/amd64 \
-    #     -t "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
-    #     -t "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
-    #     "${BUILD_VARIANT}" \
-    #     $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
-    # fi
+    if [[ ${PUSH_FLAG} != 0 ]]; then
+      # Push tagged images to cache
+      #    Separate because of https://github.com/docker/buildx/issues/59
+      # --platform=linux/amd64 \
+      docker buildx build --push \
+        --tag "${IMAGE_NAME}:${MAJOR_VERSION}${TAG_SUFFIX}" \
+        --tag "${IMAGE_NAME}:${MINOR_VERSION}${TAG_SUFFIX}" \
+        "${BUILD_VARIANT}" \
+        $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
+    fi
   done
 
   echo "$(jq -R 'split(" ")' <<< "${BUILT_TAGS[@]}")" >> $GITHUB_STEP_SUMMARY

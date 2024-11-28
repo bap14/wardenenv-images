@@ -62,8 +62,8 @@ jobs:
           echo "legacy_major_versions=$(echo $LEGACY_VERSIONS | jq -c '.major')" >> $GITHUB_OUTPUT
           echo "legacy_minor_versions=$(echo $LEGACY_VERSIONS | jq -c '.minor')" >> $GITHUB_OUTPUT
 
-          echo "::notice title=Active PHP Versions Identified::$(echo $ACTIVE_VERSIONS | jq -c '.major + .minor')"
-          echo "::notice title=Legacy PHP Versions Identified::$(echo $LEGACY_VERSIONS | jq -c '.major + .minor')"
+          echo "::notice title=Active PHP Versions Identified::$(echo $ACTIVE_VERSIONS | jq -c '.major + .minor | sort')"
+          echo "::notice title=Legacy PHP Versions Identified::$(echo $LEGACY_VERSIONS | jq -c '.major + .minor | sort')"
   legacy-php:
     name: Build Legacy PHP Images
     runs-on: ubuntu-latest
@@ -91,16 +91,11 @@ jobs:
         id: build-legacy
         env:
           PRE_AUTH: 1
+          PUSH_FLAG: 1
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
-        # TODO: Determine proper guard for this step to only push in certain instances
-      - name: Push Built Images
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          tags: ${{ fromJSON(steps.build-legacy.outputs.built_tags) }}
   active-php:
     name: Build Active PHP Images
     runs-on: ubuntu-latest
@@ -135,16 +130,11 @@ jobs:
         id: build-active
         env:
           PRE_AUTH: 1
+          PUSH_FLAG: 1
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
-      # TODO: Determine proper guard for this step to only push in certain instances
-      - name: Push Built Images
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          tags: ${{ fromJSON(steps.build-active.outputs.built_tags) }}
 #  php-fpm:
 #    name: Build Warden PHP-FPM Images ${{ matrix.php_version }}
 #    runs-on: ubuntu-latest
