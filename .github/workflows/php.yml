@@ -54,13 +54,13 @@ jobs:
             fi
           done
 
-          echo "active_versions=$(echo $ACTIVE_VERSIONS | jq -c '.major + .minor | sort')"
-          echo "active_major_versions=$(echo $ACTIVE_VERSIONS | jq -c '.major')"
-          echo "active_minor_versions=$(echo $ACTIVE_VERSIONS | jq -c '.minor')"
+          echo "active_versions=$(echo $ACTIVE_VERSIONS | jq -c '.major + .minor | sort')" >> $GITHUB_OUTPUT
+          echo "active_major_versions=$(echo $ACTIVE_VERSIONS | jq -c '.major')" >> $GITHUB_OUTPUT
+          echo "active_minor_versions=$(echo $ACTIVE_VERSIONS | jq -c '.minor')" >> $GITHUB_OUTPUT
           
-          echo "legacy_versions=$(echo $LEGACY_VERSIONS | jq -c '.major + .minor | sort')"
-          echo "legacy_major_versions=$(echo $LEGACY_VERSIONS | jq -c '.major')"
-          echo "legacy_minor_versions=$(echo $LEGACY_VERSIONS | jq -c '.minor')"
+          echo "legacy_versions=$(echo $LEGACY_VERSIONS | jq -c '.major + .minor | sort')" >> $GITHUB_OUTPUT
+          echo "legacy_major_versions=$(echo $LEGACY_VERSIONS | jq -c '.major')" >> $GITHUB_OUTPUT
+          echo "legacy_minor_versions=$(echo $LEGACY_VERSIONS | jq -c '.minor')" >> $GITHUB_OUTPUT
 
           echo "::notice title=Active PHP Versions Identified::$(echo $ACTIVE_VERSIONS | jq -c '.major + .minor')"
           echo "::notice title=Legacy PHP Versions Identified::$(echo $LEGACY_VERSIONS | jq -c '.major + .minor')"
