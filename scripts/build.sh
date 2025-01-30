@@ -57,7 +57,7 @@ fi
 ## define image repository to push
 WARDEN_IMAGE_REPOSITORY="${WARDEN_IMAGE_REPOSITORY:-"docker.io/wardenenv"}"
 
-docker buildx create --use
+docker buildx use warden-builder >/dev/null 2>&1 || docker buildx create --name warden-builder --use
 
 export PHP_SOURCE_IMAGE="${PHP_SOURCE_IMAGE:-"ghcr.io/wardenenv/php"}"
 if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
