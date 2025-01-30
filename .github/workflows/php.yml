@@ -24,6 +24,7 @@ jobs:
         legacy_major_versions: ${{ steps.get_php_versions.outputs.legacy_major_versions}}
         legacy_minor_versions: ${{ steps.get_php_versions.outputs.legacy_minor_versions}}
       steps:
+        - uses: actions/checkout@v4
         - name: Gather PHP Versions
           id: get_php_versions
           env:
