@@ -8,8 +8,8 @@ RUN go install github.com/axllent/mailpit/sendmail@latest
 FROM ${PHP_SOURCE_IMAGE}:${PHP_VERSION}-${PHP_VARIANT}
 
 # Clear undesired settings from base fpm images
-ENV COMPOSER_ALLOW_SUPERUSER=
-ENV COMPOSER_HOME=
+ENV COMPOSER_ALLOW_SUPERUSER ""
+ENV COMPOSER_HOME ""
 
 ENV MAILHOG_HOST    mailhog
 ENV MAILHOG_PORT    1025
