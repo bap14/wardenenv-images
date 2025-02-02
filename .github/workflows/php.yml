@@ -122,7 +122,7 @@ jobs:
       - name: Build & Push ${{ matrix.php_version }}
         env:
           PRE_AUTH: 1
-          IMAGE_NAME: ghcr.io/wardenenv/centos-php
+          IMAGE_NAME: centos-php
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           CACHE_FROM: type=gha,scope=buildx-cache
@@ -156,7 +156,7 @@ jobs:
         env:
           BUILD_GROUP: php-fpm
           PRE_AUTH: 1
-          WARDEN_IMAGE_REPOSITORY: ghcr.io/wardenenv
+          # WARDEN_IMAGE_REPOSITORY: ghcr.io/wardenenv
           PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
           PUSH_FLAG: 0
           PHP_VERSION: ${{ matrix.php_version }}
