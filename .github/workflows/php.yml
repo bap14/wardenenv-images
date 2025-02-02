@@ -1,8 +1,8 @@
 name: Base PHP Images
 
 env:
-  WARDEN_IMAGE_REPOSITORY: custom-ghcr.io/wardenenv
-  DOCKER_IMAGE_REPOSITORY: custom-docker.io/wardenenv
+  WARDEN_IMAGE_REPOSITORY: ${{ vars.WARDEN_IMAGE_REPOSITORY || 'ghcr.io/wardenenv' }}
+  DOCKER_IMAGE_REPOSITORY: ${{ vars.DOCKEr_IMAGE_REPOSITORY || 'docker.io/wardenenv'' }}
 
 on:
   workflow_dispatch:
@@ -74,7 +74,7 @@ jobs:
       - name: Build & Push ${{ matrix.php_version }}
         env:
           PRE_AUTH: 1
-          WARDEN_IMAGE_REPOSITORY: ${{ vars.WARDEN_IMAGE_REPOSITORY }}
+          # WARDEN_IMAGE_REPOSITORY: ${{ vars.WARDEN_IMAGE_REPOSITORY }}
           IMAGE_NAME: centos-php
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
