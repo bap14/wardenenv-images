@@ -41,8 +41,6 @@ VARIANT_LIST="${VARIANT_LIST:-"cli cli-loaders fpm fpm-loaders"}"
 docker buildx use warden-builder >/dev/null 2>&1 || docker buildx create --name warden-builder --use
 IMAGE_NAME="${WARDEN_IMAGE_REPOSITORY}/${IMAGE_NAME:-"php"}"
 
-echo "Using image repository: ${IMAGE_NAME}"
-
 CACHE_CONFIG="--cache-from=${CACHE_FROM} --cache-to=${CACHE_TO}"
 
 if [[ "${INDEV_FLAG:-1}" != "0" ]]; then
@@ -62,7 +60,7 @@ for BUILD_VERSION in ${VERSION_LIST}; do
     # Build image(s) for all platforms, caching locally
     docker buildx build \
         --platform=linux/arm64,linux/amd64 \
-        ${CACHE_CONFIG}
+        ${CACHE_CONFIG} \
         -t "${IMAGE_NAME}:build" \
         "${BUILD_VARIANT}" \
         $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
