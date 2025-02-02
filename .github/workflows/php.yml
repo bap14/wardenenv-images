@@ -63,8 +63,10 @@ jobs:
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           PUSH_FLAG: 0
-          CACHE_FROM: type=local,src=${{ runner.temp }}/.buildx-cache
-          CACHE_TO: type=local,dest=${{ runner.temp }}/.buildx-cache-new,mode=max
+          CACHE_FROM: type=gha,scope=buildx-cache
+          CACHE_TO: type=gha,mode=max,scope=buildx-cache
+          # CACHE_FROM: type=local,src=${{ runner.temp }}/.buildx-cache
+          # CACHE_TO: type=local,dest=${{ runner.temp }}/.buildx-cache-new,mode=max
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
       - name: Move cache
@@ -99,6 +101,10 @@ jobs:
           IMAGE_NAME: ghcr.io/wardenenv/centos-php
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
+          CACHE_FROM: type=gha,scope=buildx-cache
+          CACHE_TO: type=gha,mode=max,scope=buildx-cache
+          # CACHE_FROM: type=local,src=${{ runner.temp }}/.buildx-cache
+          # CACHE_TO: type=local,dest=${{ runner.temp }}/.buildx-cache-new,mode=max
           PUSH_FLAG: 0
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
