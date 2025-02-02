@@ -2,7 +2,7 @@ name: Base PHP Images
 
 env:
   WARDEN_IMAGE_REPOSITORY: ${{ vars.WARDEN_IMAGE_REPOSITORY || 'ghcr.io/wardenenv' }}
-  DOCKER_IMAGE_REPOSITORY: ${{ vars.DOCKEr_IMAGE_REPOSITORY || 'docker.io/wardenenv'' }}
+  DOCKER_IMAGE_REPOSITORY: ${{ vars.DOCKEr_IMAGE_REPOSITORY || 'docker.io/wardenenv' }}
 
 on:
   workflow_dispatch:
