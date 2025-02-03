@@ -51,10 +51,10 @@ jobs:
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/.buildx-php-${{ matrix.php_version }}
-          key: ${{ runner.os }}-buildx-php-${{ matrix.php_version }}-${{ github.sha }}
+          path: ${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
+          key: ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-php-${{ matrix.php_version }}
+            ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
@@ -80,10 +80,10 @@ jobs:
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           PUSH_FLAG: 0
-          CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
-          CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
-          # CACHE_FROM: type=local,src=${{ runner.temp }}/.buildx-cache-legacy-php
-          # CACHE_TO: type=local,dest=${{ runner.temp }}/.buildx-cache-legacy-php-new,mode=max
+          # CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
+          # CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
+          CACHE_FROM: type=local,src=${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
+          CACHE_TO: type=local,mode=max,dest=${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
       # - name: Move cache
@@ -107,10 +107,10 @@ jobs:
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/.buildx-php-${{ matrix.php_version }}
-          key: ${{ runner.os }}-buildx-php-${{ matrix.php_version }}-${{ github.sha }}
+          path: ${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
+          key: ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-php-${{ matrix.php_version }}
+            ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
@@ -127,10 +127,10 @@ jobs:
           IMAGE_NAME: centos-php
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-          CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
-          CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
-          # CACHE_FROM: type=local,src=${{ runner.temp }}/.buildx-cache-php
-          # CACHE_TO: type=local,dest=${{ runner.temp }}/.buildx-cache-php-new,mode=max
+          # CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
+          # CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
+          CACHE_FROM: type=local,src=${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
+          CACHE_TO: type=local,mode=max,dest=${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           PUSH_FLAG: 0
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash php/scripts/build.sh
@@ -152,10 +152,10 @@ jobs:
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/.buildx-php-${{ matrix.php_version }}
-          key: ${{ runner.os }}-buildx-php-${{ matrix.php_version }}-${{ github.sha }}
+          path: ${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
+          key: ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-php-${{ matrix.php_version }}
+            ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -171,8 +171,10 @@ jobs:
           PUSH_FLAG: 0
           PHP_VERSION: ${{ matrix.php_version }}
           PHP_VARIANT: ${{ matrix.php_variant }}
-          CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
-          CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
+          # CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
+          # CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
+          CACHE_FROM: type=local,src=${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
+          CACHE_TO: type=local,mode=max,dest=${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash scripts/build.sh "${BUILD_GROUP}"
       - uses: docker/login-action@v3
@@ -187,8 +189,10 @@ jobs:
           PUSH_FLAG: 1
           PHP_VERSION: ${{ matrix.php_version }}
           PHP_VARIANT: ${{ matrix.php_variant }}
-          CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
-          CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
+          # CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
+          # CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
+          CACHE_FROM: type=local,src=${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
+          CACHE_TO: type=local,mode=max,dest=${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash scripts/build.sh "${BUILD_GROUP}"
 
