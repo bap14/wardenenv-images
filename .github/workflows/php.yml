@@ -65,6 +65,9 @@ jobs:
           key: ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-
+      - name: Cache folder content
+        run: |
+          tree -f -pug -h -D ${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
       - name: Build & Push ${{ matrix.php_version }}
         env:
           PRE_AUTH: 1
@@ -114,6 +117,9 @@ jobs:
           key: ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-
+      - name: Cache folder content
+        run: |
+          tree -f -pug -h -D ${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
       - name: Build & Push ${{ matrix.php_version }}
         env:
           PRE_AUTH: 1
@@ -155,6 +161,9 @@ jobs:
           key: ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-
+      - name: Cache folder content
+        run: |
+          tree -f -pug -h -D ${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
       - name: Build & Push Images (GitHub)
         env:
           BUILD_GROUP: php-fpm
