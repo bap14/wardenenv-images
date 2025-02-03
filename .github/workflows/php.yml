@@ -2,7 +2,8 @@ name: Base PHP Images
 
 env:
   WARDEN_IMAGE_REPOSITORY: ${{ vars.WARDEN_IMAGE_REPOSITORY || 'ghcr.io/wardenenv' }}
-  DOCKER_IMAGE_REPOSITORY: ${{ vars.DOCKEr_IMAGE_REPOSITORY || 'docker.io/wardenenv' }}
+  DOCKER_IMAGE_REPOSITORY: ${{ vars.DOCKER_IMAGE_REPOSITORY || 'docker.io/wardenenv' }}
+  PHP_SOURCE_IMAGE: ${{ vars.WARDEN_IMAGE_REPOSITORY || 'ghcr.io/wardenenv' }}/centos-php
 
 on:
   workflow_dispatch:
@@ -50,10 +51,10 @@ jobs:
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/.buildx-cache-legacy-php
-          key: ${{ runner.os }}-buildx-legacy-php-${{ github.sha }}
+          path: ${{ runner.temp }}/.buildx-php-${{ matrix.php_version }}
+          key: ${{ runner.os }}-buildx-php-${{ matrix.php_version }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-legacy-php
+            ${{ runner.os }}-buildx-php-${{ matrix.php_version }}
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
@@ -79,8 +80,8 @@ jobs:
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
           PUSH_FLAG: 0
-          CACHE_FROM: type=gha,scope=buildx-cache-legacy-php
-          CACHE_TO: type=gha,mode=max,scope=buildx-cache-legacy-php
+          CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
+          CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           # CACHE_FROM: type=local,src=${{ runner.temp }}/.buildx-cache-legacy-php
           # CACHE_TO: type=local,dest=${{ runner.temp }}/.buildx-cache-legacy-php-new,mode=max
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
@@ -106,10 +107,10 @@ jobs:
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
-          path: ${{ runner.temp }}/.buildx-cache-php
-          key: ${{ runner.os }}-buildx-php-${{ github.sha }}
+          path: ${{ runner.temp }}/.buildx-php-${{ matrix.php_version }}
+          key: ${{ runner.os }}-buildx-php-${{ matrix.php_version }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-php
+            ${{ runner.os }}-buildx-php-${{ matrix.php_version }}
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
@@ -126,8 +127,8 @@ jobs:
           IMAGE_NAME: centos-php
           VERSION_LIST: ${{ matrix.php_version }}
           VARIANT_LIST: cli cli-loaders fpm fpm-loaders
-          CACHE_FROM: type=gha,scope=buildx-cache-php
-          CACHE_TO: type=gha,mode=max,scope=buildx-cache-php
+          CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
+          CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           # CACHE_FROM: type=local,src=${{ runner.temp }}/.buildx-cache-php
           # CACHE_TO: type=local,dest=${{ runner.temp }}/.buildx-cache-php-new,mode=max
           PUSH_FLAG: 0
@@ -146,7 +147,15 @@ jobs:
         php_variant: ["fpm-loaders"]
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/.buildx-php-${{ matrix.php_version }}
+          key: ${{ runner.os }}-buildx-php-${{ matrix.php_version }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-php-${{ matrix.php_version }}
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -158,10 +167,12 @@ jobs:
           BUILD_GROUP: php-fpm
           PRE_AUTH: 1
           # WARDEN_IMAGE_REPOSITORY: ghcr.io/wardenenv
-          PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
+          # PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
           PUSH_FLAG: 0
           PHP_VERSION: ${{ matrix.php_version }}
           PHP_VARIANT: ${{ matrix.php_variant }}
+          CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
+          CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash scripts/build.sh "${BUILD_GROUP}"
       - uses: docker/login-action@v3
@@ -172,10 +183,12 @@ jobs:
         env:
           BUILD_GROUP: php-fpm
           PRE_AUTH: 1
-          PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
+          # PHP_SOURCE_IMAGE: ghcr.io/wardenenv/centos-php
           PUSH_FLAG: 1
           PHP_VERSION: ${{ matrix.php_version }}
           PHP_VARIANT: ${{ matrix.php_variant }}
+          CACHE_FROM: type=gha,scope=buildx-cache-php-${{ matrix.php_version }}
+          CACHE_TO: type=gha,mode=max,scope=buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
           INDEV_FLAG: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: bash scripts/build.sh "${BUILD_GROUP}"
 
