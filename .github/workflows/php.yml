@@ -63,8 +63,6 @@ jobs:
         with:
           path: ${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
           key: ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-
       - name: Cache folder content
         run: |
           tree -f -pug -h -D ${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
@@ -115,8 +113,6 @@ jobs:
         with:
           path: ${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
           key: ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-cache-php-${{ matrix.php_version }}-
       - name: Cache folder content
         run: |
           tree -f -pug -h -D ${{ runner.temp }}/.buildx-cache-php-${{ matrix.php_version }}
