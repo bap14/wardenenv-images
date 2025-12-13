@@ -37,11 +37,11 @@ RUN set -eux \
     else \
         DNFVERS=$(dnf --version | head -n1 | awk -F '.' '{print $1}') \
         && if [[ ${DNFVERS} = '5' ]]; then \
-            dnf install dnf5-plugins && dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo; \
+            dnf install -y dnf5-plugins && dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo; \
         else \
-            dnf install 'dnf-command(config-manager)' && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo; \
+            dnf install -y 'dnf-command(config-manager)' && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo; \
         fi; \
-        dnf install gh --repo gh-cli \
+        dnf install -y gh --repo gh-cli \
         && curl -fL --output pie.phar https://github.com/php/pie/releases/latest/download/pie.phar \
         && gh attestation verify --owner php pie.phar \
         && chmod +x pie.phar && mv pie.phar /usr/local/bin/pie \
