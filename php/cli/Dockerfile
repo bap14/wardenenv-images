@@ -30,9 +30,9 @@ RUN set -eux \
     # For PHP < 8.1 use the deprecated PECL extension
     && if [[ ${PHP_VERSION} < 81 ]]; then \
         PECL_PACKAGES= && for PKG in ${PECL_EXTENSIONS}; do \
-        PECL_PACKAGES+="php-${PKG} "; \
-    done \
-        dnf install -y ${PECL_EXTENSIONS}; \
+            PECL_PACKAGES+="php-${PKG} "; \
+        done \
+        && dnf install -y ${PECL_PACKAGES}; \
     # For PHP >= 8.1 use the new PIE extension installer
     else \
         DNFVERS=$(dnf --version | head -n1 | awk -F '.' '{print $1}') \
