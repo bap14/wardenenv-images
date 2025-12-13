@@ -29,7 +29,10 @@ RUN set -eux \
     && dnf install -y ${PHP_PACKAGES} git perl which npm patch gettext unzip bzip2 pwgen procps nmap-ncat jq \
     # For PHP < 8.1 use the deprecated PECL extension
     && if [[ ${PHP_VERSION} < 81 ]]; then \
-        dnf install -y ${PHP_EXTENSIONS}; \
+        PECL_PACKAGES= && for PKG in ${PECL_EXTENSIONS}; do \
+        PECL_PACKAGES+="php-${PKG} "; \
+    done \
+        dnf install -y ${PECL_EXTENSIONS}; \
     # For PHP >= 8.1 use the new PIE extension installer
     else \
         DNFVERS=$(dnf --version | head -n1 | awk -F '.' '{print $1}') \
