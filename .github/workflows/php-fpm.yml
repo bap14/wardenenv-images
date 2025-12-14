@@ -122,7 +122,6 @@ jobs:
           REGISTRIES: ${{ inputs.registries }}
           PHP_SOURCE_IMAGE: ${{ inputs.php_source_image }}
           METADATA_DIR: ${{ runner.temp }}/metadata
-          WARDEN_IMAGE_REPOSITORY: ${{ inputs.warden_image_repository || 'ghcr.io/wardenenv' }}
         run: bash php-fpm/scripts/build.sh "${BUILD_GROUP}"
       - name: Push Metadata Files
         uses: actions/upload-artifact@v5
@@ -222,7 +221,6 @@ jobs:
           PHP_SOURCE_IMAGE: ${{ inputs.php_source_image }}
           ENV_SOURCE_IMAGE: ${{ inputs.warden_image_repository }}/php-fpm
           METADATA_DIR: ${{ runner.temp }}/metadata
-          WARDEN_IMAGE_REPOSITORY: ${{ inputs.warden_image_repository || 'ghcr.io/wardenenv' }}
         run: bash php-fpm/scripts/build.sh "${BUILD_GROUP}"
       - name: Push Metadata Files
         uses: actions/upload-artifact@v5
