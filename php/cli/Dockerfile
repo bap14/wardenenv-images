@@ -35,19 +35,19 @@ RUN set -eux \
     # For PHP < 8.1 use the deprecated PECL extension
     && if [[ ${PHP_VERSION} < 81 ]]; then \
         PECL_PACKAGES= && for PKG in ${PECL_EXTENSIONS}; do \
-            PECL_PACKAGES+="php-${PKG} "; \
-        done \
-        && dnf install -y ${PECL_PACKAGES}; \
+            PECL_PACKAGES+="php-${PKG} " \
+        && done \
+        && dnf install -y ${PECL_PACKAGES} \
     # For PHP >= 8.1 use the new PIE extension installer
-    else \
-        DNFVERS=$(dnf --version | head -n1 | awk -F '.' '{print $1}') \
+    && else \
+        && DNFVERS=$(dnf --version | head -n1 | awk -F '.' '{print $1}') \
         && if [[ ${DNFVERS} = '5' ]]; then \
             dnf install -y dnf5-plugins && dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo; \
         else \
             dnf install -y 'dnf-command(config-manager)' && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo; \
-        fi; \
-        dnf install -y gh --repo gh-cli \
-        && dnf install -y autoconf automake libtool m4 make gcc php-devel ImageMagick7 \
+        fi \
+        && dnf install -y gh --repo gh-cli \
+        && dnf install -y autoconf automake libtool m4 make gcc php-devel ImageMagick \
         && curl -fL --output pie.phar https://github.com/php/pie/releases/latest/download/pie.phar \
         && gh attestation verify --owner php pie.phar \
         && dnf remove -y gh \
@@ -56,10 +56,10 @@ RUN set -eux \
             # Swoole isn't supported on PHP 8.5
             if [[ ${PKG} = "swoole/swoole" ]] && (( ${PHP_VERSION} == 85 )); then continue; fi; \
             # PIE requires installing extensions independently
-            pie install ${PKG}; \
-        done \
-    fi; \
-    dnf clean all \
+            pie install ${PKG} \
+        && done \
+    && fi \
+    && dnf clean all \
     && rm -rf /var/cache/dnf
 
 RUN set -eux \
