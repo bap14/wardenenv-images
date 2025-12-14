@@ -35,8 +35,8 @@ RUN set -eux \
     # For PHP < 8.1 use the deprecated PECL extension
     && if [[ ${PHP_VERSION} < 81 ]]; then \
         PECL_PACKAGES= && for PKG in ${PECL_EXTENSIONS}; do \
-            PECL_PACKAGES+="php-${PKG} " \
-        && done \
+            PECL_PACKAGES+="php-${PKG} "; \
+        done \
         && dnf install -y ${PECL_PACKAGES} \
     # For PHP >= 8.1 use the new PIE extension installer
     && else \
@@ -56,8 +56,8 @@ RUN set -eux \
             # Swoole isn't supported on PHP 8.5
             if [[ ${PKG} = "swoole/swoole" ]] && (( ${PHP_VERSION} == 85 )); then continue; fi; \
             # PIE requires installing extensions independently
-            pie install ${PKG} \
-        && done \
+            pie install ${PKG}; \
+        done \
     && fi \
     && dnf clean all \
     && rm -rf /var/cache/dnf
