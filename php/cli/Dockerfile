@@ -47,7 +47,7 @@ RUN set -eux \
             dnf install -y 'dnf-command(config-manager)' && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo; \
         fi; \
         dnf install -y gh --repo gh-cli \
-        && dnf install -y autoconf automake libtool m4 make gcc php-devel \
+        && dnf install -y autoconf automake libtool m4 make gcc php-devel ImageMagick7 \
         && curl -fL --output pie.phar https://github.com/php/pie/releases/latest/download/pie.phar \
         && gh attestation verify --owner php pie.phar \
         && dnf remove -y gh \
