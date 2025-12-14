@@ -55,9 +55,9 @@ RUN set -eux \
         && PIE_PACKAGES= && for PKG in ${PIE_EXTENSIONS}; do \
             # Swoole isn't supported on PHP 8.5
             if [[ ${PKG} = "swoole/swoole" ]] && (( ${PHP_VERSION} == 85 )); then continue; fi; \
-            PIE_PACKAGES+="${PKG} "; \
+            # PIE requires installing extensions independently
+            pie install ${PKG}; \
         done \
-        && pie install ${PIE_PACKAGES}; \
     fi; \
     dnf clean all \
     && rm -rf /var/cache/dnf
