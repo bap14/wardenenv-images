@@ -7,9 +7,9 @@ ARG PHP_VERSION
 ## PIE to install msgpack/msgpack-php and move the pecl-msgpack to the PECL_EXTENSIONS var
 ## !!!!!!!!
 ARG PHP_EXTENSIONS="bcmath cli common gd gmp intl json mbstring \
-    mcrypt sodium mysqlnd pgsql opcache pdo pdo_pgsql process soap xml xmlrpc pecl-msgpack"
+    mcrypt sodium mysqlnd pgsql opcache pdo pdo_pgsql process soap xml xmlrpc pecl-amqp pecl-msgpack"
 # PHP < 8.1 language extensions to install
-ARG PECL_EXTENSIONS="pecl-amqp pecl-redis pecl-imagick pecl-zip pecl-swoole"
+ARG PECL_EXTENSIONS="pecl-redis pecl-imagick pecl-zip pecl-swoole"
 # PHP >= 8.1 language extensions to install
 ARG PIE_EXTENSIONS="php-amqp/php-amqp phpredis/phpredis imagick/imagick pecl/zip swoole/swoole"
 ARG COMPOSER_VERSION=2
@@ -47,6 +47,7 @@ RUN set -eux \
             dnf install -y 'dnf-command(config-manager)' && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo; \
         fi; \
         dnf install -y gh --repo gh-cli \
+        && dnf install -y autoconf automake libtool m4 make gcc php-devel \
         && curl -fL --output pie.phar https://github.com/php/pie/releases/latest/download/pie.phar \
         && gh attestation verify --owner php pie.phar \
         && dnf remove -y gh \
