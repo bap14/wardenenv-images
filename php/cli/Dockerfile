@@ -37,9 +37,9 @@ RUN set -eux \
         PECL_PACKAGES= && for PKG in ${PECL_EXTENSIONS}; do \
             PECL_PACKAGES+="php-${PKG} "; \
         done \
-        && dnf install -y ${PECL_PACKAGES} \
+        && dnf install -y ${PECL_PACKAGES}; \
     # For PHP >= 8.1 use the new PIE extension installer
-    && else \
+    else \
         && DNFVERS=$(dnf --version | head -n1 | awk -F '.' '{print $1}') \
         && if [[ ${DNFVERS} = '5' ]]; then \
             dnf install -y dnf5-plugins && dnf config-manager addrepo --from-repofile=https://cli.github.com/packages/rpm/gh-cli.repo; \
@@ -58,7 +58,7 @@ RUN set -eux \
             # PIE requires installing extensions independently
             pie install ${PKG}; \
         done \
-    && fi \
+    fi \
     && dnf clean all \
     && rm -rf /var/cache/dnf
 
