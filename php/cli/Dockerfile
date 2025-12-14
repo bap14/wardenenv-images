@@ -54,7 +54,7 @@ RUN set -eux \
         && chmod +x pie.phar && mv pie.phar /usr/local/bin/pie \
         && PIE_PACKAGES= && for PKG in ${PIE_EXTENSIONS}; do \
             # Swoole isn't supported on PHP 8.5
-            if [[ ${PKG} = "swoole/swoole" ]] && (( ${PHP_VERSION} = 85 )); then continue; fi; \
+            if [[ ${PKG} = "swoole/swoole" ]] && (( ${PHP_VERSION} == 85 )); then continue; fi; \
             PIE_PACKAGES+="${PKG} "; \
         done \
         && pie install ${PIE_PACKAGES}; \
