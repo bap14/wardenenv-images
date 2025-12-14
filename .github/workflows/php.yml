@@ -152,6 +152,7 @@ jobs:
           REPOSITORY: ${{ env.WARDEN_IMAGE_REPOSITORY }}
           METADATA_DIR: ${{ runner.temp }}/metadata
           PHP_VERSIONS_DIR: ${{ runner.temp }}/php-versions
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash php/scripts/build.sh
       - name: Push Metadata Files
         uses: actions/upload-artifact@v5
