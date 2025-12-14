@@ -45,7 +45,7 @@ RUN set -eux \
         dnf install -y gh --repo gh-cli \
         && curl -fL --output pie.phar https://github.com/php/pie/releases/latest/download/pie.phar \
         && gh attestation verify --owner php pie.phar \
-        && dnf remove gh \
+        && dnf remove -y gh \
         && chmod +x pie.phar && mv pie.phar /usr/local/bin/pie \
         && PIE_PACKAGES= && for PKG in ${PIE_EXTENSIONS}; do \
             # Swoole isn't supported on PHP 8.5
