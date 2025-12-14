@@ -99,8 +99,8 @@ echo "::group::Building ${IMAGE_NAME}:${BUILD_VERSION} (${BUILD_VARIANT})"
     --load \
     --platform=${PLATFORM} \
     -t "${IMAGE_NAME}:build" \
-    "${BUILD_VARIANT}" \
     --secret id=GH_TOKEN,env=${GITHUB_TOKEN} \
+    "${BUILD_VARIANT}" \
     $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
 echo "::endgroup::"
