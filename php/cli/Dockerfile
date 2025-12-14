@@ -47,7 +47,7 @@ RUN --mount=type=secret,id=GH_TOKEN \
             dnf install -y 'dnf-command(config-manager)' && dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo; \
         fi && \
         dnf install -y gh --repo gh-cli && \
-        dnf install -y autoconf automake libtool m4 make gcc php-devel ImageMagick && \
+        dnf install -y autoconf automake libtool m4 make gcc php-devel ImageMagick ImageMagick-devel && \
         curl -fL --output pie.phar https://github.com/php/pie/releases/latest/download/pie.phar && \
         GH_TOKEN=$(cat /run/secrets/GH_TOKEN) gh attestation verify --owner php pie.phar && \
         dnf remove -y gh && \
