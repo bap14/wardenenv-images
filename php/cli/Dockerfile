@@ -18,7 +18,7 @@ RUN dnf update -y && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
-RUN --mount=type=secret,id=GH_TOKEN,env=GH_TOKEN \
+RUN --mount=type=secret,id=GH_TOKEN \
     set -eux && \
     dnf install -y epel-release && \
     dnf install -y https://rpms.remirepo.net/enterprise/remi-release-9.rpm && \
@@ -49,7 +49,7 @@ RUN --mount=type=secret,id=GH_TOKEN,env=GH_TOKEN \
         dnf install -y gh --repo gh-cli && \
         dnf install -y autoconf automake libtool m4 make gcc php-devel ImageMagick && \
         curl -fL --output pie.phar https://github.com/php/pie/releases/latest/download/pie.phar && \
-        gh attestation verify --owner php pie.phar && \
+        GH_TOKEN=$(cat /run/secrets/GH_TOKEN) gh attestation verify --owner php pie.phar && \
         dnf remove -y gh && \
         chmod +x pie.phar && \
         mv pie.phar /usr/local/bin/pie && \
