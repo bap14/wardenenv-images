@@ -43,15 +43,15 @@ RUN set -eux \
         fi; \
         dnf install -y gh --repo gh-cli \
         && curl -fL --output pie.phar https://github.com/php/pie/releases/latest/download/pie.phar \
-        && gh attestation verify --owner php pie.phar \
+        && GH_TOKEN="${GITHUB_TOKEN}" gh attestation verify --owner php pie.phar \
+        && dnf remove gh \
         && chmod +x pie.phar && mv pie.phar /usr/local/bin/pie \
         && PIE_PACKAGES= && for PKG in ${PIE_EXTENSIONS}; do \
             # Swoole isn't supported on PHP 8.5
             if [[ ${PKG} = "swoole/swoole" ]] && (( ${PHP_VERSION} = 85 )); then continue; fi; \
             PIE_PACKAGES+="${PKG} "; \
         done \
-        && pie install ${PIE_PACKAGES} \
-        && dnf remove gh; \
+        && pie install ${PIE_PACKAGES}; \
     fi; \
     dnf clean all \
     && rm -rf /var/cache/dnf
