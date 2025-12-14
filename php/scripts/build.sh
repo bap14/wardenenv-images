@@ -100,7 +100,7 @@ echo "::group::Building ${IMAGE_NAME}:${BUILD_VERSION} (${BUILD_VARIANT})"
     --platform=${PLATFORM} \
     -t "${IMAGE_NAME}:build" \
     "${BUILD_VARIANT}" \
-    --build-arg GH_TOKEN="${GITHUB_TOKEN}" \
+    --secret id=GH_TOKEN,env=${GITHUB_TOKEN} \
     $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")
 
 echo "::endgroup::"
