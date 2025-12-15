@@ -57,7 +57,7 @@ RUN --mount=type=secret,id=GH_TOKEN \
             # Swoole isn't supported on PHP 8.5
             if [[ ${PKG} = "swoole/swoole" ]] && (( $PHP_VERSION == 85 )); then continue; fi; \
             # PIE requires installing extensions independently
-            pie install ${PKG}; \
+            pie install ${PKG} || exit 24; \
         done \
     fi && \
     dnf clean all && \
