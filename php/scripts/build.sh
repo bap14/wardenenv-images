@@ -94,6 +94,15 @@ echo "::group::Building ${IMAGE_NAME}:${BUILD_VERSION} (${BUILD_VARIANT})"
   printf "\e[01;31m==> building %s:%s (%s)\033[0m\n" \
     "${IMAGE_NAME}" "${BUILD_VERSION}" "${BUILD_VARIANT}"
 
+  printf "\e[01;31m==> \e[01;33mDocker Build Command: \033[0m\n"
+  printf "\e[01;32m docker buildx build \
+    --load \
+    --platform=${PLATFORM} \
+    -t "${IMAGE_NAME}:build" \
+    --secret id=GH_TOKEN,env=GITHUB_TOKEN \
+    "${BUILD_VARIANT}" \
+    $(printf -- "--build-arg %s " "${BUILD_ARGS[@]}")\033[0m\n"
+
   # Build the multi-arch image, but don't load it because GitHub can't load multi-arch images
   docker buildx build \
     --load \
